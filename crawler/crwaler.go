@@ -45,9 +45,13 @@ func NewCrawler(db *gorm.DB, config *config.Config) *Crawler {
 	if crawler.isCluster {
 		DLocker.EstablishZkConn(zkHosts, zkTimeOut)
 		DLocker.CreatePath(appName)
-		crawler.scheduler = scheduler.NewDistributedSqlScheduler(db, lockersPath, prefix, lockerTimeout)
+		sqlScheduler := scheduler.NewDistributedSqlScheduler(db, lockersPath, prefix, lockerTimeout)
+		crawler.scheduler = sqlScheduler
+		crawler.processor = sqlScheduler
 	} else {
-		crawler.scheduler = scheduler.NewBasicSqlScheduler(db)
+		sqlScheduler := scheduler.NewBasicSqlScheduler(db)
+		crawler.scheduler = sqlScheduler
+		crawler.processor = sqlScheduler
 	}
 	return &crawler
 }
@@ -66,9 +70,11 @@ func (this *Crawler) Run() {
 
 	for i := 0; i < this.threadNum; i++ {
 		go func() {
-			task := this.scheduler.GetTask()
-			result := downloader.Download(task)
-			this.scheduler.AddResult(result)
+			for {
+				task := this.scheduler.GetTask()
+				result := downloader.Download(task)
+				this.scheduler.AddResult(result)
+			}
 		}()
 	}
 
@@ -76,7 +82,7 @@ func (this *Crawler) Run() {
 		result := this.scheduler.GetResult()
 		for i := 0; i < len(this.parsers); i++ {
 			if this.parsers[i].Identifier == result.Identifier {
-				this.parsers[i].Parse(&result.Response, &this.processor)
+				this.parsers[i].Parse(&result, this.processor)
 			}
 		}
 	}
