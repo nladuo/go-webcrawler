@@ -1,0 +1,83 @@
+package crawler
+
+import (
+	"github.com/jinzhu/gorm"
+	"github.com/nladuo/DLocker"
+	"github.com/nladuo/go-webcrawler/downloader"
+	"github.com/nladuo/go-webcrawler/model/config"
+	"github.com/nladuo/go-webcrawler/model/task"
+	"github.com/nladuo/go-webcrawler/scheduler"
+	"time"
+)
+
+const (
+	prefix    string = "lock-"
+	lockerDir string = "/locker"
+)
+
+var (
+	appName       string
+	zkHosts       []string
+	lockersPath   string
+	lockerTimeout time.Duration
+	zkTimeOut     time.Duration
+)
+
+type Crawler struct {
+	threadNum int
+	parsers   []*Parser
+	scheduler scheduler.Scheduler
+	processor scheduler.Processor
+	isMaster  bool
+	isCluster bool
+}
+
+func NewCrawler(db *gorm.DB, config *config.Config) *Crawler {
+	var crawler Crawler
+	crawler.isCluster = config.IsCluster
+	crawler.isMaster = config.IsMaster
+	crawler.threadNum = config.ThreadNum
+	appName = config.AppName
+	zkHosts = config.ZkHosts
+	lockersPath = appName + lockerDir
+	lockerTimeout = time.Duration(config.LockerTimeout) * time.Second
+	zkTimeOut = time.Duration(config.ZkTimeOut) * time.Second
+	if crawler.isCluster {
+		DLocker.EstablishZkConn(zkHosts, zkTimeOut)
+		DLocker.CreatePath(appName)
+		crawler.scheduler = scheduler.NewDistributedSqlScheduler(db, lockersPath, prefix, lockerTimeout)
+	} else {
+		crawler.scheduler = scheduler.NewBasicSqlScheduler(db)
+	}
+	return &crawler
+}
+
+func (this *Crawler) AddBaseTask(task task.Task) {
+	if this.isMaster {
+		this.scheduler.AddTask(task)
+	}
+}
+
+func (this *Crawler) AddParser(parser Parser) {
+	this.parsers = append(this.parsers, &parser)
+}
+
+func (this *Crawler) Run() {
+
+	for i := 0; i < this.threadNum; i++ {
+		go func() {
+			task := this.scheduler.GetTask()
+			result := downloader.Download(task)
+			this.scheduler.AddResult(result)
+		}()
+	}
+
+	for {
+		result := this.scheduler.GetResult()
+		for i := 0; i < len(this.parsers); i++ {
+			if this.parsers[i].Identifier == result.Identifier {
+				this.parsers[i].Parse(&result.Response, &this.processor)
+			}
+		}
+	}
+}

@@ -1,0 +1,11 @@
+{
+    "AppName": "go-webcrawler",
+    "IsCluster": true,
+    "IsMaster": true,
+    "ThreadNum": 3,
+    "LockerTimeout": 10,
+    "ZkTimeOut": 20,
+    "ZkHosts": [
+        "127.0.0.1:2181"
+    ]
+}

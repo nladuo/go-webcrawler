@@ -1,2 +1,2 @@
 # go-webcrawler
-a distributed go-implemented web crawler.
+a simple, distributed, go-implemented web crawler.
