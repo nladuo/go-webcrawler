@@ -1,4 +1,4 @@
-package task
+package model
 
 import (
 	"encoding/json"
@@ -19,7 +19,7 @@ func (this *Task) Serialize() (string, error) {
 	return taskStr, err
 }
 
-func UnSerialize(data string) (Task, error) {
+func UnSerializeTask(data string) (Task, error) {
 	var task Task
 	err := json.Unmarshal([]byte(data), &task)
 	return task, err

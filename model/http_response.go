@@ -1,4 +1,4 @@
-package response
+package model
 
 import (
 	"net/http"
@@ -10,7 +10,7 @@ type HttpResponse struct {
 	Header  http.Header
 }
 
-func GetResponse(response *http.Response) *HttpResponse {
+func getResponse(response *http.Response) *HttpResponse {
 	var http_resp HttpResponse
 	http_resp.Cookies = response.Cookies()
 	http_resp.Header = response.Header

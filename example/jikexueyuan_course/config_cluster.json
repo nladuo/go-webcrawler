@@ -2,7 +2,7 @@
     "AppName": "go-webcrawler",
     "IsCluster": true,
     "IsMaster": true,
-    "ThreadNum": 3,
+    "ThreadNum": 10,
     "LockerTimeout": 10,
     "ZkTimeOut": 20,
     "ZkHosts": [

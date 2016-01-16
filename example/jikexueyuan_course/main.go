@@ -6,11 +6,8 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
-	"github.com/nladuo/go-webcrawler/crawler"
-	"github.com/nladuo/go-webcrawler/model/config"
-	"github.com/nladuo/go-webcrawler/model/result"
-	"github.com/nladuo/go-webcrawler/model/task"
-	"github.com/nladuo/go-webcrawler/scheduler"
+	crawler "github.com/nladuo/go-webcrawler"
+	"github.com/nladuo/go-webcrawler/model"
 	"log"
 	"os"
 	"strconv"
@@ -20,7 +17,7 @@ const (
 	identifier string = "jikexueyuan"
 )
 
-func ParseCourse(res *result.Result, processor scheduler.Processor) {
+func ParseCourse(res *model.Result, processor model.Processor) {
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(res.Response.Body))
 	if err != nil {
 		return
@@ -32,15 +29,21 @@ func ParseCourse(res *result.Result, processor scheduler.Processor) {
 	})
 	pageNum, _ := strconv.Atoi(string(res.UserData))
 	log.Println("page num :", pageNum)
-	if pageNum > 50 {
+	if pageNum == 50 {
 		os.Exit(0)
 	}
-	pageNumStr := strconv.Itoa(pageNum + 1)
-	task := task.Task{
-		Identifier: identifier,
-		Url:        "http://www.jikexueyuan.com/course/?pageNum=" + pageNumStr,
-		UserData:   []byte(pageNumStr)}
-	processor.AddTask(task)
+	if pageNum == 1 {
+		for i := 2; i < 52; i++ {
+			pageNumStr := strconv.Itoa(i)
+			task := model.Task{
+				Identifier: identifier,
+				Url:        "http://www.jikexueyuan.com/course/?pageNum=" + pageNumStr,
+				UserData:   []byte(pageNumStr)}
+			processor.AddTask(task)
+		}
+
+	}
+
 }
 
 func main() {
@@ -48,7 +51,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, "lack parameter")
 		os.Exit(-1)
 	}
-	config, err := config.GetConfigFromPath(os.Args[1])
+	config, err := model.GetConfigFromPath(os.Args[1])
 	if err != nil {
 		panic(err)
 	}
@@ -58,12 +61,12 @@ func main() {
 	}
 	defer db.Close()
 	mCrawler := crawler.NewCrawler(&db, config)
-	baseTask := task.Task{
+	baseTask := model.Task{
 		Identifier: identifier,
 		Url:        "http://www.jikexueyuan.com/course/?pageNum=1",
 		UserData:   []byte("1")}
 	mCrawler.AddBaseTask(baseTask)
-	parser := crawler.Parser{Identifier: identifier, Parse: ParseCourse}
+	parser := model.Parser{Identifier: identifier, Parse: ParseCourse}
 	mCrawler.AddParser(parser)
 	mCrawler.Run()
 }

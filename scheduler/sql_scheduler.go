@@ -3,8 +3,7 @@ package scheduler
 import (
 	"github.com/jinzhu/gorm"
 	"github.com/nladuo/DLocker"
-	"github.com/nladuo/go-webcrawler/model/result"
-	"github.com/nladuo/go-webcrawler/model/task"
+	"github.com/nladuo/go-webcrawler/model"
 	"sync"
 	"time"
 )
@@ -23,8 +22,8 @@ const (
 // the distributed scheduler
 type SqlScheduler struct {
 	db          *gorm.DB
-	tasks       chan task.Task
-	results     chan result.Result
+	tasks       chan model.Task
+	results     chan model.Result
 	dLocker     *DLocker.Dlocker
 	basicLocker *sync.Mutex
 	isCluster   bool
@@ -33,8 +32,8 @@ type SqlScheduler struct {
 func newSqlScheduler(db *gorm.DB) *SqlScheduler {
 	var scheduler SqlScheduler
 	scheduler.db = db
-	scheduler.tasks = make(chan task.Task, 200)
-	scheduler.results = make(chan result.Result, 200)
+	scheduler.tasks = make(chan model.Task, 200)
+	scheduler.results = make(chan model.Result, 200)
 	createTable(db)
 	return &scheduler
 }
@@ -73,7 +72,7 @@ func (this *SqlScheduler) unLock() {
 // add task into scheduler,
 // if the tasks size exceeds 120,
 // some tasks will store into database
-func (this *SqlScheduler) AddTask(task task.Task) {
+func (this *SqlScheduler) AddTask(task model.Task) {
 	this.tasks <- task
 	go func() {
 		this.lock()
@@ -94,13 +93,13 @@ func (this *SqlScheduler) AddTask(task task.Task) {
 // get task into scheduler,
 // if the tasks size less than 20,
 // it will extract some tasks from database
-func (this *SqlScheduler) GetTask() task.Task {
+func (this *SqlScheduler) GetTask() model.Task {
 	go func() {
 		this.lock()
 		if len(this.tasks) < extract_from_sql_count {
 			tasks := getTasks(this.db, extract_count)
 			for i := 0; i < len(tasks); i++ {
-				t, err := task.UnSerialize(tasks[i].Data)
+				t, err := model.UnSerializeTask(tasks[i].Data)
 				if err != nil {
 					continue
 				}
@@ -113,7 +112,7 @@ func (this *SqlScheduler) GetTask() task.Task {
 	return <-this.tasks
 }
 
-func (this *SqlScheduler) AddResult(result result.Result) {
+func (this *SqlScheduler) AddResult(result model.Result) {
 	this.results <- result
 	go func() {
 		this.lock()
@@ -131,13 +130,13 @@ func (this *SqlScheduler) AddResult(result result.Result) {
 	}()
 }
 
-func (this *SqlScheduler) GetResult() result.Result {
+func (this *SqlScheduler) GetResult() model.Result {
 	go func() {
 		this.lock()
 		if len(this.tasks) < extract_from_sql_count {
 			results := getResults(this.db, extract_count)
 			for i := 0; i < len(results); i++ {
-				r, err := result.UnSerialize(results[i].Data)
+				r, err := model.UnSerializeResult(results[i].Data)
 				if err != nil {
 					continue
 				}

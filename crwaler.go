@@ -4,8 +4,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/nladuo/DLocker"
 	"github.com/nladuo/go-webcrawler/downloader"
-	"github.com/nladuo/go-webcrawler/model/config"
-	"github.com/nladuo/go-webcrawler/model/task"
+	"github.com/nladuo/go-webcrawler/model"
 	"github.com/nladuo/go-webcrawler/scheduler"
 	"time"
 )
@@ -25,14 +24,14 @@ var (
 
 type Crawler struct {
 	threadNum int
-	parsers   []*Parser
+	parsers   []*model.Parser
 	scheduler scheduler.Scheduler
-	processor scheduler.Processor
+	processor model.Processor
 	isMaster  bool
 	isCluster bool
 }
 
-func NewCrawler(db *gorm.DB, config *config.Config) *Crawler {
+func NewCrawler(db *gorm.DB, config *model.Config) *Crawler {
 	var crawler Crawler
 	crawler.isCluster = config.IsCluster
 	crawler.isMaster = config.IsMaster
@@ -56,13 +55,13 @@ func NewCrawler(db *gorm.DB, config *config.Config) *Crawler {
 	return &crawler
 }
 
-func (this *Crawler) AddBaseTask(task task.Task) {
+func (this *Crawler) AddBaseTask(task model.Task) {
 	if this.isMaster {
 		this.scheduler.AddTask(task)
 	}
 }
 
-func (this *Crawler) AddParser(parser Parser) {
+func (this *Crawler) AddParser(parser model.Parser) {
 	this.parsers = append(this.parsers, &parser)
 }
 

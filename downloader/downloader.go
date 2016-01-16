@@ -1,15 +1,14 @@
 package downloader
 
 import (
-	"github.com/nladuo/go-webcrawler/model/result"
-	"github.com/nladuo/go-webcrawler/model/task"
+	"github.com/nladuo/go-webcrawler/model"
 	"io/ioutil"
 	"log"
 	"net/http"
 )
 
-func Download(task task.Task) result.Result {
-	var result result.Result
+func Download(task model.Task) model.Result {
+	var result model.Result
 REDOWNLOAD:
 	resp, err := http.Get(task.Url)
 	if err != nil {

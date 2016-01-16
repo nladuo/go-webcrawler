@@ -1,14 +1,13 @@
-package result
+package model
 
 import (
 	"encoding/json"
-	"github.com/nladuo/go-webcrawler/model/response"
 )
 
 type Result struct {
 	Identifier string
 	Err        error
-	Response   response.HttpResponse
+	Response   HttpResponse
 	UserData   []byte
 }
 
@@ -21,7 +20,7 @@ func (this *Result) Serialize() (string, error) {
 	return resStr, err
 }
 
-func UnSerialize(data string) (Result, error) {
+func UnSerializeResult(data string) (Result, error) {
 	var result Result
 	err := json.Unmarshal([]byte(data), &result)
 	return result, err
