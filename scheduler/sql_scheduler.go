@@ -75,9 +75,9 @@ func (this *SqlScheduler) unLock() {
 // some tasks will store into database
 func (this *SqlScheduler) AddTask(task task.Task) {
 	this.tasks <- task
-	if len(this.tasks) > store_to_sql_count {
-		go func() {
-			this.lock()
+	go func() {
+		this.lock()
+		if len(this.tasks) > store_to_sql_count {
 			for i := 0; i < store_count; i++ {
 				t := <-this.tasks
 				taskStr, err := t.Serialize()
@@ -86,18 +86,18 @@ func (this *SqlScheduler) AddTask(task task.Task) {
 				}
 				addTask(this.db, taskStr)
 			}
-			this.unLock()
-		}()
-	}
+		}
+		this.unLock()
+	}()
 }
 
 // get task into scheduler,
 // if the tasks size less than 20,
 // it will extract some tasks from database
 func (this *SqlScheduler) GetTask() task.Task {
-	if len(this.tasks) < extract_from_sql_count {
-		go func() {
-			this.lock()
+	go func() {
+		this.lock()
+		if len(this.tasks) < extract_from_sql_count {
 			tasks := getTasks(this.db, extract_count)
 			for i := 0; i < len(tasks); i++ {
 				t, err := task.UnSerialize(tasks[i].Data)
@@ -106,18 +106,18 @@ func (this *SqlScheduler) GetTask() task.Task {
 				}
 				this.tasks <- t
 			}
-			this.unLock()
-		}()
-	}
+
+		}
+		this.unLock()
+	}()
 	return <-this.tasks
 }
 
 func (this *SqlScheduler) AddResult(result result.Result) {
 	this.results <- result
-
-	if len(this.tasks) > store_to_sql_count {
-		go func() {
-			this.lock()
+	go func() {
+		this.lock()
+		if len(this.tasks) > store_to_sql_count {
 			for i := 0; i < store_count; i++ {
 				r := <-this.results
 				resultStr, err := r.Serialize()
@@ -126,15 +126,15 @@ func (this *SqlScheduler) AddResult(result result.Result) {
 				}
 				addResult(this.db, resultStr)
 			}
-			this.unLock()
-		}()
-	}
+		}
+		this.unLock()
+	}()
 }
 
 func (this *SqlScheduler) GetResult() result.Result {
-	if len(this.tasks) < extract_from_sql_count {
-		go func() {
-			this.lock()
+	go func() {
+		this.lock()
+		if len(this.tasks) < extract_from_sql_count {
 			results := getResults(this.db, extract_count)
 			for i := 0; i < len(results); i++ {
 				r, err := result.UnSerialize(results[i].Data)
@@ -143,8 +143,8 @@ func (this *SqlScheduler) GetResult() result.Result {
 				}
 				this.results <- r
 			}
-			this.unLock()
-		}()
-	}
+		}
+		this.unLock()
+	}()
 	return <-this.results
 }

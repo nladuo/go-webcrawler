@@ -12,7 +12,7 @@ import (
 
 const (
 	prefix    string = "lock-"
-	lockerDir string = "/locker"
+	lockerDir string = "locker"
 )
 
 var (
@@ -39,12 +39,12 @@ func NewCrawler(db *gorm.DB, config *config.Config) *Crawler {
 	crawler.threadNum = config.ThreadNum
 	appName = config.AppName
 	zkHosts = config.ZkHosts
-	lockersPath = appName + lockerDir
+	lockersPath = "/" + appName + "/" + lockerDir
 	lockerTimeout = time.Duration(config.LockerTimeout) * time.Second
 	zkTimeOut = time.Duration(config.ZkTimeOut) * time.Second
 	if crawler.isCluster {
 		DLocker.EstablishZkConn(zkHosts, zkTimeOut)
-		DLocker.CreatePath(appName)
+		DLocker.CreatePath("/" + appName)
 		sqlScheduler := scheduler.NewDistributedSqlScheduler(db, lockersPath, prefix, lockerTimeout)
 		crawler.scheduler = sqlScheduler
 		crawler.processor = sqlScheduler
@@ -83,7 +83,9 @@ func (this *Crawler) Run() {
 		for i := 0; i < len(this.parsers); i++ {
 			if this.parsers[i].Identifier == result.Identifier {
 				this.parsers[i].Parse(&result, this.processor)
+				break
 			}
 		}
 	}
+
 }

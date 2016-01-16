@@ -4,6 +4,7 @@ import (
 	"github.com/nladuo/go-webcrawler/model/result"
 	"github.com/nladuo/go-webcrawler/model/task"
 	"io/ioutil"
+	"log"
 	"net/http"
 )
 
@@ -14,6 +15,7 @@ REDOWNLOAD:
 	if err != nil {
 		goto REDOWNLOAD
 	}
+	log.Println("Download: ", task.Url, task.Identifier)
 	//result.Response
 	result.Identifier = task.Identifier
 	result.UserData = task.UserData
