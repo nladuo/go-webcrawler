@@ -9,14 +9,14 @@ import (
 )
 
 const (
-	//if the tasks or results length more than 120,
+	//if the tasks or results length more than 200,
 	//serialize the task and store it into sql database
-	store_to_sql_count int = 120
+	store_to_sql_count int = 200
 	store_count        int = 100
-	//if the tasks or results length less than 20,
+	//if the tasks or results length less than 100,
 	//get data from sql database
-	extract_from_sql_count int = 20
-	extract_count          int = 100
+	extract_from_sql_count int = 100
+	extract_count          int = 200
 )
 
 // the distributed scheduler
@@ -70,7 +70,7 @@ func (this *SqlScheduler) unLock() {
 }
 
 // add task into scheduler,
-// if the tasks size exceeds 120,
+// if the tasks size exceeds 200,
 // some tasks will store into database
 func (this *SqlScheduler) AddTask(task model.Task) {
 	this.tasks <- task
@@ -91,7 +91,7 @@ func (this *SqlScheduler) AddTask(task model.Task) {
 }
 
 // get task into scheduler,
-// if the tasks size less than 20,
+// if the tasks size less than 100,
 // it will extract some tasks from database
 func (this *SqlScheduler) GetTask() model.Task {
 	go func() {
@@ -105,7 +105,6 @@ func (this *SqlScheduler) GetTask() model.Task {
 				}
 				this.tasks <- t
 			}
-
 		}
 		this.unLock()
 	}()
