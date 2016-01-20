@@ -42,7 +42,6 @@ func newSqlScheduler(db *gorm.DB) *SqlScheduler {
 	scheduler.getResultChan = make(chan byte, 300)
 	scheduler.addTaskChan = make(chan byte, 300)
 	scheduler.getTaskChan = make(chan byte, 300)
-	scheduler.flagGettingData = false
 	createTable(db)
 	return &scheduler
 }
