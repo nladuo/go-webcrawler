@@ -96,13 +96,6 @@ func (this *SqlScheduler) manipulateDataLoop() {
 				this.unLock()
 			}
 		case <-this.getTaskChan:
-			if getTaskSize(this.db) < extract_count {
-				// sleep 5 second
-				for i := 0; i < 100; i++ {
-					time.Sleep(50 * time.Millisecond)
-					cleanChan(this.getTaskChan)
-				}
-			}
 			if len(this.tasks) < extract_from_sql_count {
 				this.lock()
 				tasks := getTasks(this.db, extract_count)
@@ -129,13 +122,6 @@ func (this *SqlScheduler) manipulateDataLoop() {
 				this.unLock()
 			}
 		case <-this.getResultChan:
-			if getResultSize(this.db) < extract_count {
-				// sleep 5 second
-				for i := 0; i < 100; i++ {
-					time.Sleep(50 * time.Millisecond)
-					cleanChan(this.getResultChan)
-				}
-			}
 			if len(this.results) < extract_from_sql_count {
 				this.lock()
 				results := getResults(this.db, extract_count)
