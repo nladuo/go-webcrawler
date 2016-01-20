@@ -21,12 +21,13 @@ const (
 
 // the distributed scheduler
 type SqlScheduler struct {
-	db          *gorm.DB
-	tasks       chan model.Task
-	results     chan model.Result
-	dLocker     *DLocker.Dlocker
-	basicLocker *sync.Mutex
-	isCluster   bool
+	db              *gorm.DB
+	tasks           chan model.Task
+	results         chan model.Result
+	dLocker         *DLocker.Dlocker
+	basicLocker     *sync.Mutex
+	isCluster       bool
+	flagGettingData bool // ensure only one goroutine getting tasks or results from sql database
 }
 
 func newSqlScheduler(db *gorm.DB) *SqlScheduler {
@@ -34,6 +35,7 @@ func newSqlScheduler(db *gorm.DB) *SqlScheduler {
 	scheduler.db = db
 	scheduler.tasks = make(chan model.Task, 200)
 	scheduler.results = make(chan model.Result, 200)
+	scheduler.flagGettingData = false
 	createTable(db)
 	return &scheduler
 }
@@ -42,6 +44,7 @@ func NewDistributedSqlScheduler(db *gorm.DB, basePath, prefix string, timeout ti
 	scheduler := newSqlScheduler(db)
 	scheduler.dLocker = DLocker.NewLocker(basePath, prefix, timeout)
 	scheduler.isCluster = true
+	go scheduler.manipulateDataLoop()
 	return scheduler
 }
 
@@ -49,6 +52,7 @@ func NewBasicSqlScheduler(db *gorm.DB) *SqlScheduler {
 	scheduler := newSqlScheduler(db)
 	scheduler.basicLocker = &sync.Mutex{}
 	scheduler.isCluster = false
+	go scheduler.manipulateDataLoop()
 	return scheduler
 }
 
@@ -69,14 +73,10 @@ func (this *SqlScheduler) unLock() {
 	}
 }
 
-// add task into scheduler,
-// if the tasks size exceeds 200,
-// some tasks will store into database
-func (this *SqlScheduler) AddTask(task model.Task) {
-	this.tasks <- task
-	go func() {
-		this.lock()
+func (this *SqlScheduler) manipulateDataLoop() {
+	for {
 		if len(this.tasks) > store_to_sql_count {
+			this.lock()
 			for i := 0; i < store_count; i++ {
 				t := <-this.tasks
 				taskStr, err := t.Serialize()
@@ -85,18 +85,10 @@ func (this *SqlScheduler) AddTask(task model.Task) {
 				}
 				addTask(this.db, taskStr)
 			}
+			this.unLock()
 		}
-		this.unLock()
-	}()
-}
-
-// get task into scheduler,
-// if the tasks size less than 100,
-// it will extract some tasks from database
-func (this *SqlScheduler) GetTask() model.Task {
-	go func() {
-		this.lock()
 		if len(this.tasks) < extract_from_sql_count {
+			this.lock()
 			tasks := getTasks(this.db, extract_count)
 			for i := 0; i < len(tasks); i++ {
 				t, err := model.UnSerializeTask(tasks[i].Data)
@@ -105,17 +97,10 @@ func (this *SqlScheduler) GetTask() model.Task {
 				}
 				this.tasks <- t
 			}
+			this.unLock()
 		}
-		this.unLock()
-	}()
-	return <-this.tasks
-}
-
-func (this *SqlScheduler) AddResult(result model.Result) {
-	this.results <- result
-	go func() {
-		this.lock()
-		if len(this.tasks) > store_to_sql_count {
+		if len(this.results) > store_to_sql_count {
+			this.lock()
 			for i := 0; i < store_count; i++ {
 				r := <-this.results
 				resultStr, err := r.Serialize()
@@ -124,15 +109,10 @@ func (this *SqlScheduler) AddResult(result model.Result) {
 				}
 				addResult(this.db, resultStr)
 			}
+			this.unLock()
 		}
-		this.unLock()
-	}()
-}
-
-func (this *SqlScheduler) GetResult() model.Result {
-	go func() {
-		this.lock()
-		if len(this.tasks) < extract_from_sql_count {
+		if len(this.results) < extract_from_sql_count {
+			this.lock()
 			results := getResults(this.db, extract_count)
 			for i := 0; i < len(results); i++ {
 				r, err := model.UnSerializeResult(results[i].Data)
@@ -141,8 +121,23 @@ func (this *SqlScheduler) GetResult() model.Result {
 				}
 				this.results <- r
 			}
+			this.unLock()
 		}
-		this.unLock()
-	}()
+	}
+}
+
+func (this *SqlScheduler) AddTask(task model.Task) {
+	this.tasks <- task
+}
+
+func (this *SqlScheduler) GetTask() model.Task {
+	return <-this.tasks
+}
+
+func (this *SqlScheduler) AddResult(result model.Result) {
+	this.results <- result
+}
+
+func (this *SqlScheduler) GetResult() model.Result {
 	return <-this.results
 }
