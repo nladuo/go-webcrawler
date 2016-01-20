@@ -21,20 +21,27 @@ const (
 
 // the distributed scheduler
 type SqlScheduler struct {
-	db              *gorm.DB
-	tasks           chan model.Task
-	results         chan model.Result
-	dLocker         *DLocker.Dlocker
-	basicLocker     *sync.Mutex
-	isCluster       bool
-	flagGettingData bool // ensure only one goroutine getting tasks or results from sql database
+	db            *gorm.DB
+	tasks         chan model.Task
+	results       chan model.Result
+	dLocker       *DLocker.Dlocker
+	basicLocker   *sync.Mutex
+	isCluster     bool
+	getTaskChan   chan byte
+	getResultChan chan byte
+	addTaskChan   chan byte
+	addResultChan chan byte
 }
 
 func newSqlScheduler(db *gorm.DB) *SqlScheduler {
 	var scheduler SqlScheduler
 	scheduler.db = db
-	scheduler.tasks = make(chan model.Task, 200)
-	scheduler.results = make(chan model.Result, 200)
+	scheduler.tasks = make(chan model.Task, 300)
+	scheduler.results = make(chan model.Result, 300)
+	scheduler.addResultChan = make(chan byte, 300)
+	scheduler.getResultChan = make(chan byte, 300)
+	scheduler.addTaskChan = make(chan byte, 300)
+	scheduler.getTaskChan = make(chan byte, 300)
 	scheduler.flagGettingData = false
 	createTable(db)
 	return &scheduler
@@ -75,69 +82,93 @@ func (this *SqlScheduler) unLock() {
 
 func (this *SqlScheduler) manipulateDataLoop() {
 	for {
-		if len(this.tasks) > store_to_sql_count {
-			this.lock()
-			for i := 0; i < store_count; i++ {
-				t := <-this.tasks
-				taskStr, err := t.Serialize()
-				if err != nil {
-					continue
+		select {
+		case <-this.addTaskChan:
+			if len(this.tasks) > store_to_sql_count {
+				this.lock()
+				for i := 0; i < store_count; i++ {
+					t := <-this.tasks
+					taskStr, err := t.Serialize()
+					if err != nil {
+						continue
+					}
+					addTask(this.db, taskStr)
 				}
-				addTask(this.db, taskStr)
+				this.unLock()
 			}
-			this.unLock()
-		}
-		if len(this.tasks) < extract_from_sql_count {
-			this.lock()
-			tasks := getTasks(this.db, extract_count)
-			for i := 0; i < len(tasks); i++ {
-				t, err := model.UnSerializeTask(tasks[i].Data)
-				if err != nil {
-					continue
+		case <-this.getTaskChan:
+			if getTaskSize(this.db) < extract_count {
+				// sleep 5 second
+				for i := 0; i < 100; i++ {
+					time.Sleep(50 * time.Millisecond)
+					cleanChan(this.getTaskChan)
 				}
-				this.tasks <- t
 			}
-			this.unLock()
-		}
-		if len(this.results) > store_to_sql_count {
-			this.lock()
-			for i := 0; i < store_count; i++ {
-				r := <-this.results
-				resultStr, err := r.Serialize()
-				if err != nil {
-					continue
+			if len(this.tasks) < extract_from_sql_count {
+				this.lock()
+				tasks := getTasks(this.db, extract_count)
+				for i := 0; i < len(tasks); i++ {
+					t, err := model.UnSerializeTask(tasks[i].Data)
+					if err != nil {
+						continue
+					}
+					this.tasks <- t
 				}
-				addResult(this.db, resultStr)
+				this.unLock()
 			}
-			this.unLock()
-		}
-		if len(this.results) < extract_from_sql_count {
-			this.lock()
-			results := getResults(this.db, extract_count)
-			for i := 0; i < len(results); i++ {
-				r, err := model.UnSerializeResult(results[i].Data)
-				if err != nil {
-					continue
+		case <-this.addResultChan:
+			if len(this.results) > store_to_sql_count {
+				this.lock()
+				for i := 0; i < store_count; i++ {
+					r := <-this.results
+					resultStr, err := r.Serialize()
+					if err != nil {
+						continue
+					}
+					addResult(this.db, resultStr)
 				}
-				this.results <- r
+				this.unLock()
 			}
-			this.unLock()
+		case <-this.getResultChan:
+			if getResultSize(this.db) < extract_count {
+				// sleep 5 second
+				for i := 0; i < 100; i++ {
+					time.Sleep(50 * time.Millisecond)
+					cleanChan(this.getResultChan)
+				}
+			}
+			if len(this.results) < extract_from_sql_count {
+				this.lock()
+				results := getResults(this.db, extract_count)
+				for i := 0; i < len(results); i++ {
+					r, err := model.UnSerializeResult(results[i].Data)
+					if err != nil {
+						continue
+					}
+					this.results <- r
+				}
+				this.unLock()
+			}
 		}
 	}
 }
 
 func (this *SqlScheduler) AddTask(task model.Task) {
 	this.tasks <- task
+	this.addTaskChan <- byte(1)
 }
 
 func (this *SqlScheduler) GetTask() model.Task {
+	this.getTaskChan <- byte(1)
 	return <-this.tasks
 }
 
 func (this *SqlScheduler) AddResult(result model.Result) {
 	this.results <- result
+	this.addResultChan <- byte(1)
 }
 
 func (this *SqlScheduler) GetResult() model.Result {
+	this.getResultChan <- byte(1)
 	return <-this.results
 }

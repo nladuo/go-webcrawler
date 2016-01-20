@@ -36,11 +36,11 @@ func getResults(db *gorm.DB, limit int) []Result {
 	return results
 }
 
-// func getResultSize(db *gorm.DB) int {
-// 	count := 0
-// 	db.Model(&Result{}).Count(&count)
-// 	return count
-// }
+func getResultSize(db *gorm.DB) int {
+	count := 0
+	db.Model(&Result{}).Count(&count)
+	return count
+}
 
 func addTask(db *gorm.DB, data string) {
 	db.Create(&Task{Data: data})
@@ -57,8 +57,8 @@ func getTasks(db *gorm.DB, limit int) []Task {
 	return tasks
 }
 
-// func getTaskSize(db *gorm.DB) int {
-// 	count := 0
-// 	db.Model(&Task{}).Count(&count)
-// 	return count
-// }
+func getTaskSize(db *gorm.DB) int {
+	count := 0
+	db.Model(&Task{}).Count(&count)
+	return count
+}
