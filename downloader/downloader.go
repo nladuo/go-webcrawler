@@ -8,13 +8,13 @@ import (
 )
 
 func Download(task model.Task) model.Result {
+	log.Println("Start Download: ", task.Url)
 	var result model.Result
 REDOWNLOAD:
 	resp, err := http.Get(task.Url)
 	if err != nil {
 		goto REDOWNLOAD
 	}
-	log.Println("Start Download: ", task.Url)
 	//result.Response
 	result.Identifier = task.Identifier
 	result.UserData = task.UserData

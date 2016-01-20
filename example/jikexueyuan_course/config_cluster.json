@@ -7,5 +7,6 @@
     "ZkTimeOut": 600,
     "ZkHosts": [
         "127.0.0.1:2181"
-    ]
+    ],
+    "BufferSize":1000
 }

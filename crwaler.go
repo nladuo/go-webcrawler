@@ -44,11 +44,11 @@ func NewCrawler(db *gorm.DB, config *model.Config) *Crawler {
 	if crawler.isCluster {
 		DLocker.EstablishZkConn(zkHosts, zkTimeOut)
 		DLocker.CreatePath("/" + appName)
-		sqlScheduler := scheduler.NewDistributedSqlScheduler(db, lockersPath, prefix, lockerTimeout)
+		sqlScheduler := scheduler.NewDistributedSqlScheduler(db, config.BufferSize, lockersPath, prefix, lockerTimeout)
 		crawler.scheduler = sqlScheduler
 		crawler.processor = sqlScheduler
 	} else {
-		sqlScheduler := scheduler.NewBasicSqlScheduler(db)
+		sqlScheduler := scheduler.NewBasicSqlScheduler(db, config.BufferSize)
 		crawler.scheduler = sqlScheduler
 		crawler.processor = sqlScheduler
 	}

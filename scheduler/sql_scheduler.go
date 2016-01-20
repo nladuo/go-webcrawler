@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const (
+var (
 	//if the tasks or results length more than 200,
 	//serialize the task and store it into sql database
 	store_to_sql_count int = 200
@@ -33,29 +33,34 @@ type SqlScheduler struct {
 	addResultChan chan byte
 }
 
-func newSqlScheduler(db *gorm.DB) *SqlScheduler {
+func newSqlScheduler(db *gorm.DB, bufferSize int) *SqlScheduler {
 	var scheduler SqlScheduler
 	scheduler.db = db
-	scheduler.tasks = make(chan model.Task, 300)
-	scheduler.results = make(chan model.Result, 300)
-	scheduler.addResultChan = make(chan byte, 300)
-	scheduler.getResultChan = make(chan byte, 300)
-	scheduler.addTaskChan = make(chan byte, 300)
-	scheduler.getTaskChan = make(chan byte, 300)
+	store_to_sql_count = bufferSize / 2
+	store_count = bufferSize
+	extract_count = bufferSize / 2
+	extract_count = bufferSize
+
+	scheduler.tasks = make(chan model.Task, bufferSize+100)
+	scheduler.results = make(chan model.Result, bufferSize+100)
+	scheduler.addResultChan = make(chan byte, bufferSize+100)
+	scheduler.getResultChan = make(chan byte, bufferSize+100)
+	scheduler.addTaskChan = make(chan byte, bufferSize+100)
+	scheduler.getTaskChan = make(chan byte, bufferSize+100)
 	createTable(db)
 	return &scheduler
 }
 
-func NewDistributedSqlScheduler(db *gorm.DB, basePath, prefix string, timeout time.Duration) *SqlScheduler {
-	scheduler := newSqlScheduler(db)
+func NewDistributedSqlScheduler(db *gorm.DB, bufferSize int, basePath, prefix string, timeout time.Duration) *SqlScheduler {
+	scheduler := newSqlScheduler(db, bufferSize)
 	scheduler.dLocker = DLocker.NewLocker(basePath, prefix, timeout)
 	scheduler.isCluster = true
 	go scheduler.manipulateDataLoop()
 	return scheduler
 }
 
-func NewBasicSqlScheduler(db *gorm.DB) *SqlScheduler {
-	scheduler := newSqlScheduler(db)
+func NewBasicSqlScheduler(db *gorm.DB, bufferSize int) *SqlScheduler {
+	scheduler := newSqlScheduler(db, bufferSize)
 	scheduler.basicLocker = &sync.Mutex{}
 	scheduler.isCluster = false
 	go scheduler.manipulateDataLoop()
@@ -82,9 +87,8 @@ func (this *SqlScheduler) unLock() {
 func (this *SqlScheduler) manipulateDataLoop() {
 	for {
 		select {
-		case <-this.addTaskChan:
+		case <-this.addTaskChan: // add task does not need lock
 			if len(this.tasks) > store_to_sql_count {
-				this.lock()
 				for i := 0; i < store_count; i++ {
 					t := <-this.tasks
 					taskStr, err := t.Serialize()
@@ -93,9 +97,8 @@ func (this *SqlScheduler) manipulateDataLoop() {
 					}
 					addTask(this.db, taskStr)
 				}
-				this.unLock()
 			}
-		case <-this.getTaskChan:
+		case <-this.getTaskChan: // get task does need lock
 			if len(this.tasks) < extract_from_sql_count {
 				this.lock()
 				tasks := getTasks(this.db, extract_count)
@@ -108,9 +111,8 @@ func (this *SqlScheduler) manipulateDataLoop() {
 				}
 				this.unLock()
 			}
-		case <-this.addResultChan:
+		case <-this.addResultChan: // add result does not need lock
 			if len(this.results) > store_to_sql_count {
-				this.lock()
 				for i := 0; i < store_count; i++ {
 					r := <-this.results
 					resultStr, err := r.Serialize()
@@ -119,9 +121,8 @@ func (this *SqlScheduler) manipulateDataLoop() {
 					}
 					addResult(this.db, resultStr)
 				}
-				this.unLock()
 			}
-		case <-this.getResultChan:
+		case <-this.getResultChan: // get result does need lock
 			if len(this.results) < extract_from_sql_count {
 				this.lock()
 				results := getResults(this.db, extract_count)
