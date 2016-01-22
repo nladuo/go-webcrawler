@@ -11,12 +11,12 @@ import (
 var (
 	//if the tasks or results length more than 200,
 	//serialize the task and store it into sql database
-	store_to_sql_count int = 200
-	store_count        int = 100
+	store_to_sql_count int
+	store_count        int
 	//if the tasks or results length less than 100,
 	//get data from sql database
-	extract_from_sql_count int = 100
-	extract_count          int = 200
+	extract_from_sql_count int
+	extract_count          int
 )
 
 // the distributed scheduler
@@ -36,10 +36,10 @@ type SqlScheduler struct {
 func newSqlScheduler(db *gorm.DB, bufferSize int) *SqlScheduler {
 	var scheduler SqlScheduler
 	scheduler.db = db
-	store_to_sql_count = bufferSize / 2
-	store_count = bufferSize
+	store_to_sql_count = bufferSize
+	store_count = bufferSize / 2
+	extract_from_sql_count = bufferSize
 	extract_count = bufferSize / 2
-	extract_count = bufferSize
 
 	scheduler.tasks = make(chan model.Task, bufferSize+100)
 	scheduler.results = make(chan model.Result, bufferSize+100)
