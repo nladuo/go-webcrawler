@@ -29,10 +29,16 @@ func addResult(db *gorm.DB, data string) {
 
 func getResults(db *gorm.DB, limit int) []Result {
 	results := []Result{}
-	db.Limit(limit).Find(&results)
+	t := db.Begin()
+	t.Limit(limit).Find(&results)
 	for i := 0; i < len(results); i++ {
-		db.Delete(&results[i])
+		rowsAffected := t.Delete(&results[i]).RowsAffected
+		if rowsAffected == 0 {
+			t.Rollback()
+			return []Result{}
+		}
 	}
+	t.Commit()
 	return results
 }
 
@@ -48,12 +54,18 @@ func addTask(db *gorm.DB, data string) {
 
 func getTasks(db *gorm.DB, limit int) []Task {
 	tasks := []Task{}
+	t := db.Begin()
 	//get tasks form db
-	db.Limit(limit).Find(&tasks)
+	t.Limit(limit).Find(&tasks)
 	// delete the tasks
 	for i := 0; i < len(tasks); i++ {
-		db.Delete(&tasks[i])
+		rowsAffected := t.Delete(&tasks[i]).RowsAffected
+		if rowsAffected == 0 {
+			t.Rollback()
+			return []Task{}
+		}
 	}
+	t.Commit()
 	return tasks
 }
 
