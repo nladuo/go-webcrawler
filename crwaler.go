@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"fmt"
 	"github.com/jinzhu/gorm"
 	"github.com/nladuo/DLocker"
 	"github.com/nladuo/go-webcrawler/downloader"
@@ -44,11 +45,11 @@ func NewCrawler(db *gorm.DB, config *model.Config) *Crawler {
 	if crawler.isCluster {
 		DLocker.EstablishZkConn(zkHosts, zkTimeOut)
 		DLocker.CreatePath("/" + appName)
-		sqlScheduler := scheduler.NewDistributedSqlScheduler(db, config.BufferSize, lockersPath, prefix, lockerTimeout)
+		sqlScheduler := scheduler.NewDistributedSqlScheduler(db, lockersPath, prefix, lockerTimeout)
 		crawler.scheduler = sqlScheduler
 		crawler.processor = sqlScheduler
 	} else {
-		sqlScheduler := scheduler.NewBasicSqlScheduler(db, config.BufferSize)
+		sqlScheduler := scheduler.NewBasicSqlScheduler(db)
 		crawler.scheduler = sqlScheduler
 		crawler.processor = sqlScheduler
 	}
@@ -68,13 +69,14 @@ func (this *Crawler) AddParser(parser model.Parser) {
 func (this *Crawler) Run() {
 
 	for i := 0; i < this.threadNum; i++ {
-		go func() {
+		go func(num int) {
+			tag := fmt.Sprintf("[goroutine %d]", num)
 			for {
 				task := this.scheduler.GetTask()
-				result := downloader.Download(task)
+				result := downloader.Download(tag, task)
 				this.scheduler.AddResult(result)
 			}
-		}()
+		}(i + 1)
 	}
 
 	for {

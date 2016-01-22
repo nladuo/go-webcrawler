@@ -13,7 +13,6 @@ type Config struct {
 	LockerTimeout int
 	ZkTimeOut     int
 	ZkHosts       []string
-	BufferSize    int
 }
 
 func GetConfigFromPath(path string) (*Config, error) {

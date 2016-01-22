@@ -8,15 +8,16 @@ import (
 	"time"
 )
 
-var (
+const (
 	//if the tasks or results length more than 200,
 	//serialize the task and store it into sql database
-	store_to_sql_count int
-	store_count        int
+	store_to_sql_count int = 200
+	store_count        int = 100
 	//if the tasks or results length less than 100,
 	//get data from sql database
-	extract_from_sql_count int
-	extract_count          int
+	extract_from_sql_count int = 200
+	extract_count          int = 100
+	chan_buffer_size       int = 300
 )
 
 // the distributed scheduler
@@ -33,34 +34,29 @@ type SqlScheduler struct {
 	addResultChan chan byte
 }
 
-func newSqlScheduler(db *gorm.DB, bufferSize int) *SqlScheduler {
+func newSqlScheduler(db *gorm.DB) *SqlScheduler {
 	var scheduler SqlScheduler
 	scheduler.db = db
-	store_to_sql_count = bufferSize
-	store_count = bufferSize / 2
-	extract_from_sql_count = bufferSize
-	extract_count = bufferSize / 2
-
-	scheduler.tasks = make(chan model.Task, bufferSize+100)
-	scheduler.results = make(chan model.Result, bufferSize+100)
-	scheduler.addResultChan = make(chan byte, bufferSize+100)
-	scheduler.getResultChan = make(chan byte, bufferSize+100)
-	scheduler.addTaskChan = make(chan byte, bufferSize+100)
-	scheduler.getTaskChan = make(chan byte, bufferSize+100)
+	scheduler.tasks = make(chan model.Task, chan_buffer_size)
+	scheduler.results = make(chan model.Result, chan_buffer_size)
+	scheduler.addResultChan = make(chan byte, chan_buffer_size)
+	scheduler.getResultChan = make(chan byte, chan_buffer_size)
+	scheduler.addTaskChan = make(chan byte, chan_buffer_size)
+	scheduler.getTaskChan = make(chan byte, chan_buffer_size)
 	createTable(db)
 	return &scheduler
 }
 
-func NewDistributedSqlScheduler(db *gorm.DB, bufferSize int, basePath, prefix string, timeout time.Duration) *SqlScheduler {
-	scheduler := newSqlScheduler(db, bufferSize)
+func NewDistributedSqlScheduler(db *gorm.DB, basePath, prefix string, timeout time.Duration) *SqlScheduler {
+	scheduler := newSqlScheduler(db)
 	scheduler.dLocker = DLocker.NewLocker(basePath, prefix, timeout)
 	scheduler.isCluster = true
 	go scheduler.manipulateDataLoop()
 	return scheduler
 }
 
-func NewBasicSqlScheduler(db *gorm.DB, bufferSize int) *SqlScheduler {
-	scheduler := newSqlScheduler(db, bufferSize)
+func NewBasicSqlScheduler(db *gorm.DB) *SqlScheduler {
+	scheduler := newSqlScheduler(db)
 	scheduler.basicLocker = &sync.Mutex{}
 	scheduler.isCluster = false
 	go scheduler.manipulateDataLoop()
