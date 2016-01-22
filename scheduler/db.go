@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"github.com/jinzhu/gorm"
+	"log"
 )
 
 type Task struct {
@@ -33,6 +34,7 @@ func getResults(db *gorm.DB, limit int) []Result {
 	t.Limit(limit).Find(&results)
 	for i := 0; i < len(results); i++ {
 		rowsAffected := t.Delete(&results[i]).RowsAffected
+		log.Println("rowsAffected--->", rowsAffected)
 		if rowsAffected == 0 {
 			t.Rollback()
 			return []Result{}
@@ -60,6 +62,7 @@ func getTasks(db *gorm.DB, limit int) []Task {
 	// delete the tasks
 	for i := 0; i < len(tasks); i++ {
 		rowsAffected := t.Delete(&tasks[i]).RowsAffected
+		log.Println("rowsAffected--->", rowsAffected)
 		if rowsAffected == 0 {
 			t.Rollback()
 			return []Task{}
