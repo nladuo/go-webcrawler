@@ -89,6 +89,7 @@ func (this *SqlScheduler) manipulateDataLoop() {
 		select {
 		case <-this.addTaskChan: // add task does not need lock
 			if len(this.tasks) > store_to_sql_count {
+				this.lock()
 				for i := 0; i < store_count; i++ {
 					t := <-this.tasks
 					taskStr, err := t.Serialize()
@@ -97,6 +98,7 @@ func (this *SqlScheduler) manipulateDataLoop() {
 					}
 					addTask(this.db, taskStr)
 				}
+				this.unLock()
 			}
 		case <-this.getTaskChan: // get task does need lock
 			if len(this.tasks) < extract_from_sql_count {
@@ -113,6 +115,7 @@ func (this *SqlScheduler) manipulateDataLoop() {
 			}
 		case <-this.addResultChan: // add result does not need lock
 			if len(this.results) > store_to_sql_count {
+				this.lock()
 				for i := 0; i < store_count; i++ {
 					r := <-this.results
 					resultStr, err := r.Serialize()
@@ -121,6 +124,7 @@ func (this *SqlScheduler) manipulateDataLoop() {
 					}
 					addResult(this.db, resultStr)
 				}
+				this.unLock()
 			}
 		case <-this.getResultChan: // get result does need lock
 			if len(this.results) < extract_from_sql_count {
