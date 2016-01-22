@@ -26,7 +26,6 @@ type SqlScheduler struct {
 	results       chan model.Result
 	dLocker       *DLocker.Dlocker
 	basicLocker   *sync.Mutex
-	innerLocker   *sync.Mutex
 	isCluster     bool
 	getTaskChan   chan byte
 	getResultChan chan byte
@@ -48,7 +47,6 @@ func newSqlScheduler(db *gorm.DB, bufferSize int) *SqlScheduler {
 	scheduler.getResultChan = make(chan byte, bufferSize+100)
 	scheduler.addTaskChan = make(chan byte, bufferSize+100)
 	scheduler.getTaskChan = make(chan byte, bufferSize+100)
-	scheduler.innerLocker = &sync.Mutex{}
 	createTable(db)
 	return &scheduler
 }
@@ -90,7 +88,6 @@ func (this *SqlScheduler) manipulateDataLoop() {
 	for {
 		select {
 		case <-this.addTaskChan: // add task does not need lock
-			this.innerLocker.Lock()
 			if len(this.tasks) > store_to_sql_count {
 				for i := 0; i < store_count; i++ {
 					t := <-this.tasks
@@ -101,9 +98,7 @@ func (this *SqlScheduler) manipulateDataLoop() {
 					addTask(this.db, taskStr)
 				}
 			}
-			this.innerLocker.Unlock()
 		case <-this.getTaskChan: // get task does need lock
-			this.innerLocker.Lock()
 			if len(this.tasks) < extract_from_sql_count {
 				this.lock()
 				tasks := getTasks(this.db, extract_count)
@@ -116,9 +111,7 @@ func (this *SqlScheduler) manipulateDataLoop() {
 				}
 				this.unLock()
 			}
-			this.innerLocker.Unlock()
 		case <-this.addResultChan: // add result does not need lock
-			this.innerLocker.Lock()
 			if len(this.results) > store_to_sql_count {
 				for i := 0; i < store_count; i++ {
 					r := <-this.results
@@ -129,9 +122,7 @@ func (this *SqlScheduler) manipulateDataLoop() {
 					addResult(this.db, resultStr)
 				}
 			}
-			this.innerLocker.Unlock()
 		case <-this.getResultChan: // get result does need lock
-			this.innerLocker.Lock()
 			if len(this.results) < extract_from_sql_count {
 				this.lock()
 				results := getResults(this.db, extract_count)
@@ -144,27 +135,34 @@ func (this *SqlScheduler) manipulateDataLoop() {
 				}
 				this.unLock()
 			}
-			this.innerLocker.Unlock()
 		}
 	}
 }
 
 func (this *SqlScheduler) AddTask(task model.Task) {
-	this.addTaskChan <- byte(1)
+	if len(this.tasks) > store_to_sql_count {
+		this.addTaskChan <- byte(1)
+	}
 	this.tasks <- task
 }
 
 func (this *SqlScheduler) GetTask() model.Task {
-	this.getTaskChan <- byte(1)
+	if len(this.tasks) < extract_from_sql_count {
+		this.getTaskChan <- byte(1)
+	}
 	return <-this.tasks
 }
 
 func (this *SqlScheduler) AddResult(result model.Result) {
-	this.addResultChan <- byte(1)
+	if len(this.results) > store_to_sql_count {
+		this.addResultChan <- byte(1)
+	}
 	this.results <- result
 }
 
 func (this *SqlScheduler) GetResult() model.Result {
-	this.getResultChan <- byte(1)
+	if len(this.results) < extract_from_sql_count {
+		this.getResultChan <- byte(1)
+	}
 	return <-this.results
 }
