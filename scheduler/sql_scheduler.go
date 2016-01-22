@@ -9,15 +9,17 @@ import (
 )
 
 const (
-	//if the tasks or results length more than 200,
+	//if the tasks or results length more than 250,
 	//serialize the task and store it into sql database
-	store_to_sql_count int = 200
-	store_count        int = 100
-	//if the tasks or results length less than 100,
-	//get data from sql database
-	extract_from_sql_count int = 200
-	extract_count          int = 100
-	chan_buffer_size       int = 300
+	store_to_sql_count int = 250
+	store_count        int = 100 //store 100 tasks or results to database
+
+	//if the tasks or results length less than 50,
+	//get 100 tasks or results from sql database
+	extract_from_sql_count int = 50
+	extract_count          int = 100 //extract 100 tasks or results to memeory
+	// the channal's buffer size
+	chan_buffer_size int = 300
 )
 
 // the distributed scheduler
@@ -95,7 +97,7 @@ func (this *SqlScheduler) manipulateDataLoop() {
 				}
 			}
 		case <-this.getTaskChan: // get task does need lock
-			if len(this.tasks) < extract_from_sql_count {
+			if len(this.tasks) < extract_count {
 				this.lock()
 				tasks := getTasks(this.db, extract_count)
 				for i := 0; i < len(tasks); i++ {

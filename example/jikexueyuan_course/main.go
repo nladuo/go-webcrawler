@@ -41,9 +41,7 @@ func ParseCourse(res *model.Result, processor model.Processor) {
 				UserData:   []byte(pageNumStr)}
 			processor.AddTask(task)
 		}
-
 	}
-
 }
 
 func main() {
