@@ -26,6 +26,7 @@ type SqlScheduler struct {
 	results       chan model.Result
 	dLocker       *DLocker.Dlocker
 	basicLocker   *sync.Mutex
+	innerLocker   *sync.Mutex
 	isCluster     bool
 	getTaskChan   chan byte
 	getResultChan chan byte
@@ -47,6 +48,7 @@ func newSqlScheduler(db *gorm.DB, bufferSize int) *SqlScheduler {
 	scheduler.getResultChan = make(chan byte, bufferSize+100)
 	scheduler.addTaskChan = make(chan byte, bufferSize+100)
 	scheduler.getTaskChan = make(chan byte, bufferSize+100)
+	scheduler.innerLocker = &sync.Mutex{}
 	createTable(db)
 	return &scheduler
 }
@@ -88,8 +90,8 @@ func (this *SqlScheduler) manipulateDataLoop() {
 	for {
 		select {
 		case <-this.addTaskChan: // add task does not need lock
+			this.innerLocker.Lock()
 			if len(this.tasks) > store_to_sql_count {
-				this.lock()
 				for i := 0; i < store_count; i++ {
 					t := <-this.tasks
 					taskStr, err := t.Serialize()
@@ -98,9 +100,10 @@ func (this *SqlScheduler) manipulateDataLoop() {
 					}
 					addTask(this.db, taskStr)
 				}
-				this.unLock()
 			}
+			this.innerLocker.Unlock()
 		case <-this.getTaskChan: // get task does need lock
+			this.innerLocker.Lock()
 			if len(this.tasks) < extract_from_sql_count {
 				this.lock()
 				tasks := getTasks(this.db, extract_count)
@@ -113,9 +116,10 @@ func (this *SqlScheduler) manipulateDataLoop() {
 				}
 				this.unLock()
 			}
+			this.innerLocker.Unlock()
 		case <-this.addResultChan: // add result does not need lock
+			this.innerLocker.Lock()
 			if len(this.results) > store_to_sql_count {
-				this.lock()
 				for i := 0; i < store_count; i++ {
 					r := <-this.results
 					resultStr, err := r.Serialize()
@@ -124,9 +128,10 @@ func (this *SqlScheduler) manipulateDataLoop() {
 					}
 					addResult(this.db, resultStr)
 				}
-				this.unLock()
 			}
+			this.innerLocker.Unlock()
 		case <-this.getResultChan: // get result does need lock
+			this.innerLocker.Lock()
 			if len(this.results) < extract_from_sql_count {
 				this.lock()
 				results := getResults(this.db, extract_count)
@@ -139,13 +144,14 @@ func (this *SqlScheduler) manipulateDataLoop() {
 				}
 				this.unLock()
 			}
+			this.innerLocker.Unlock()
 		}
 	}
 }
 
 func (this *SqlScheduler) AddTask(task model.Task) {
-	this.tasks <- task
 	this.addTaskChan <- byte(1)
+	this.tasks <- task
 }
 
 func (this *SqlScheduler) GetTask() model.Task {
@@ -154,8 +160,8 @@ func (this *SqlScheduler) GetTask() model.Task {
 }
 
 func (this *SqlScheduler) AddResult(result model.Result) {
-	this.results <- result
 	this.addResultChan <- byte(1)
+	this.results <- result
 }
 
 func (this *SqlScheduler) GetResult() model.Result {
