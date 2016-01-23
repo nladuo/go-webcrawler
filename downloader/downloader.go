@@ -7,7 +7,12 @@ import (
 	"net/http"
 )
 
+var (
+	request http.Request
+)
+
 func Download(tag string, task model.Task) model.Result {
+
 	log.Println(tag, "Start Download: ", task.Url)
 	var result model.Result
 REDOWNLOAD:

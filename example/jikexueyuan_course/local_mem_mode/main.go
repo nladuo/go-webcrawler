@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
-	"github.com/jinzhu/gorm"
-	_ "github.com/lib/pq"
 	crawler "github.com/nladuo/go-webcrawler"
 	"github.com/nladuo/go-webcrawler/model"
 	"log"
@@ -15,6 +13,7 @@ import (
 
 const (
 	identifier string = "jikexueyuan"
+	threadNum  int    = 3
 )
 
 func ParseCourse(res *model.Result, processor model.Processor) {
@@ -45,20 +44,7 @@ func ParseCourse(res *model.Result, processor model.Processor) {
 }
 
 func main() {
-	if len(os.Args) != 2 {
-		fmt.Fprintln(os.Stderr, "lack parameter")
-		os.Exit(-1)
-	}
-	config, err := model.GetConfigFromPath(os.Args[1])
-	if err != nil {
-		panic(err)
-	}
-	db, err := gorm.Open("postgres", "postgres://postgres:root@127.0.0.1/db_crawler?sslmode=disable")
-	if err != nil {
-		panic(err)
-	}
-	defer db.Close()
-	mCrawler := crawler.NewCrawler(&db, config)
+	mCrawler := crawler.NewLocalMemCrawler(threadNum)
 	baseTask := model.Task{
 		Identifier: identifier,
 		Url:        "http://www.jikexueyuan.com/course/?pageNum=1",

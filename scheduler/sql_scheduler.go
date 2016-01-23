@@ -4,22 +4,9 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/nladuo/DLocker"
 	"github.com/nladuo/go-webcrawler/model"
+	"log"
 	"sync"
 	"time"
-)
-
-const (
-	//if the tasks or results length more than 250,
-	//serialize the task and store it into sql database
-	store_to_sql_count int = 250
-	store_count        int = 100 //store 100 tasks or results to database
-
-	//if the tasks or results length less than 50,
-	//get 100 tasks or results from sql database
-	extract_from_sql_count int = 50
-	extract_count          int = 100 //extract 100 tasks or results to memeory
-	// the channal's buffer size
-	chan_buffer_size int = 300
 )
 
 // the distributed scheduler
@@ -57,7 +44,7 @@ func NewDistributedSqlScheduler(db *gorm.DB, basePath, prefix string, timeout ti
 	return scheduler
 }
 
-func NewBasicSqlScheduler(db *gorm.DB) *SqlScheduler {
+func NewLocalSqlScheduler(db *gorm.DB) *SqlScheduler {
 	scheduler := newSqlScheduler(db)
 	scheduler.basicLocker = &sync.Mutex{}
 	scheduler.isCluster = false
@@ -163,4 +150,79 @@ func (this *SqlScheduler) GetResult() model.Result {
 		this.getResultChan <- byte(1)
 	}
 	return <-this.results
+}
+
+// the serialization for model.Task in sql database
+type Task struct {
+	ID   uint   `sql:"AUTO_INCREMENT"`
+	Data string `sql:"size:max"`
+}
+
+// the serialization for model.Result in sql database
+type Result struct {
+	ID   uint   `sql:"AUTO_INCREMENT"`
+	Data string `sql:"size:max"`
+}
+
+func createTable(db *gorm.DB) {
+	if !db.HasTable(&Task{}) {
+		db.CreateTable(&Task{})
+	}
+	if !db.HasTable(&Result{}) {
+		db.CreateTable(&Result{})
+	}
+}
+
+func addResult(db *gorm.DB, data string) {
+	db.Create(&Result{Data: data})
+}
+
+func getResults(db *gorm.DB, limit int) []Result {
+	results := []Result{}
+	t := db.Begin()
+	t.Limit(limit).Find(&results)
+	for i := 0; i < len(results); i++ {
+		rowsAffected := t.Delete(&results[i]).RowsAffected
+		if rowsAffected == 0 {
+			t.Rollback()
+			log.Println("getResults---->rollback")
+			return []Result{}
+		}
+	}
+	t.Commit()
+	return results
+}
+
+func getResultSize(db *gorm.DB) int {
+	count := 0
+	db.Model(&Result{}).Count(&count)
+	return count
+}
+
+func addTask(db *gorm.DB, data string) {
+	db.Create(&Task{Data: data})
+}
+
+func getTasks(db *gorm.DB, limit int) []Task {
+	tasks := []Task{}
+	t := db.Begin()
+	//get tasks form db
+	t.Limit(limit).Find(&tasks)
+	// delete the tasks
+	for i := 0; i < len(tasks); i++ {
+		rowsAffected := t.Delete(&tasks[i]).RowsAffected
+		if rowsAffected == 0 {
+			t.Rollback()
+			log.Println("getTasks---->rollback")
+			return []Task{}
+		}
+	}
+	t.Commit()
+	return tasks
+}
+
+func getTaskSize(db *gorm.DB) int {
+	count := 0
+	db.Model(&Task{}).Count(&count)
+	return count
 }

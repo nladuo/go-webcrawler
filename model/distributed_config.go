@@ -5,9 +5,8 @@ import (
 	"io/ioutil"
 )
 
-type Config struct {
+type DistributedConfig struct {
 	AppName       string
-	IsCluster     bool
 	IsMaster      bool
 	ThreadNum     int
 	LockerTimeout int
@@ -15,8 +14,8 @@ type Config struct {
 	ZkHosts       []string
 }
 
-func GetConfigFromPath(path string) (*Config, error) {
-	var config Config
+func GetDistributedConfigFromPath(path string) (*DistributedConfig, error) {
+	var config DistributedConfig
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return &config, err

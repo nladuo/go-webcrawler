@@ -29,12 +29,10 @@ type Crawler struct {
 	scheduler scheduler.Scheduler
 	processor model.Processor
 	isMaster  bool
-	isCluster bool
 }
 
-func NewCrawler(db *gorm.DB, config *model.Config) *Crawler {
+func NewDistributedSqlCrawler(db *gorm.DB, config *model.DistributedConfig) *Crawler {
 	var crawler Crawler
-	crawler.isCluster = config.IsCluster
 	crawler.isMaster = config.IsMaster
 	crawler.threadNum = config.ThreadNum
 	appName = config.AppName
@@ -42,17 +40,31 @@ func NewCrawler(db *gorm.DB, config *model.Config) *Crawler {
 	lockersPath = "/" + appName + "/" + lockerDir
 	lockerTimeout = time.Duration(config.LockerTimeout) * time.Second
 	zkTimeOut = time.Duration(config.ZkTimeOut) * time.Second
-	if crawler.isCluster {
-		DLocker.EstablishZkConn(zkHosts, zkTimeOut)
-		DLocker.CreatePath("/" + appName)
-		sqlScheduler := scheduler.NewDistributedSqlScheduler(db, lockersPath, prefix, lockerTimeout)
-		crawler.scheduler = sqlScheduler
-		crawler.processor = sqlScheduler
-	} else {
-		sqlScheduler := scheduler.NewBasicSqlScheduler(db)
-		crawler.scheduler = sqlScheduler
-		crawler.processor = sqlScheduler
-	}
+	DLocker.EstablishZkConn(zkHosts, zkTimeOut)
+	DLocker.CreatePath("/" + appName)
+	sqlScheduler := scheduler.NewDistributedSqlScheduler(db, lockersPath, prefix, lockerTimeout)
+	crawler.scheduler = sqlScheduler
+	crawler.processor = sqlScheduler
+	return &crawler
+}
+
+func NewLocalSqlCrawler(db *gorm.DB, threadNum int) *Crawler {
+	var crawler Crawler
+	crawler.isMaster = true
+	crawler.threadNum = threadNum
+	sqlScheduler := scheduler.NewLocalSqlScheduler(db)
+	crawler.scheduler = sqlScheduler
+	crawler.processor = sqlScheduler
+	return &crawler
+}
+
+func NewLocalMemCrawler(threadNum int) *Crawler {
+	var crawler Crawler
+	crawler.isMaster = true
+	crawler.threadNum = threadNum
+	memScheduler := scheduler.NewLocalMemScheduler()
+	crawler.scheduler = memScheduler
+	crawler.processor = memScheduler
 	return &crawler
 }
 
@@ -88,5 +100,4 @@ func (this *Crawler) Run() {
 			}
 		}
 	}
-
 }

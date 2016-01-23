@@ -1,9 +1,0 @@
-{
-    "AppName": "go-webcrawler",
-    "IsCluster": false,
-    "IsMaster": true,
-    "ThreadNum": 3,
-    "LockerTimeout": 0,
-    "ZkTimeOut": 0,
-    "ZkHosts": []
-}

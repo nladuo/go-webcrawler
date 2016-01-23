@@ -4,7 +4,7 @@ import (
 	"github.com/nladuo/go-webcrawler/model"
 )
 
-// the normal scheduler running in single pc
+// the interface for manipulation of tasks and results
 type Scheduler interface {
 	AddTask(task model.Task)
 	GetTask() model.Task
