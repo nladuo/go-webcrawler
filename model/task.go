@@ -8,7 +8,7 @@ type Task struct {
 	Identifier string
 	Url        string
 	UserData   []byte
-	proxy      string //for example 127.0.0.1:1080
+	proxy      string //for example http://127.0.0.1:1080/
 }
 
 func (this *Task) SetProxy(proxy string) {
