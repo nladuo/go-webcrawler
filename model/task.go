@@ -8,6 +8,15 @@ type Task struct {
 	Identifier string
 	Url        string
 	UserData   []byte
+	proxy      string //for example 127.0.0.1:1080
+}
+
+func (this *Task) SetProxy(proxy string) {
+	this.proxy = proxy
+}
+
+func (this *Task) GetProxy() string {
+	return this.proxy
 }
 
 func (this *Task) Serialize() (string, error) {

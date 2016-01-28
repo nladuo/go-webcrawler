@@ -86,7 +86,10 @@ func (this *Crawler) Run() {
 			for {
 				task := this.scheduler.GetTask()
 				result := downloader.Download(tag, task)
-				this.scheduler.AddResult(result)
+				if result == nil {
+					continue
+				}
+				this.scheduler.AddResult(*result)
 			}
 		}(i + 1)
 	}

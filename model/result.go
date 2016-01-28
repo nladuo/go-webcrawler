@@ -7,7 +7,7 @@ import (
 type Result struct {
 	Identifier string
 	Err        error
-	Response   HttpResponse
+	Response   *HttpResponse
 	UserData   []byte
 }
 
