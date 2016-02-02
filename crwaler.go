@@ -24,18 +24,20 @@ var (
 )
 
 type Crawler struct {
-	threadNum int
-	parsers   []*model.Parser
-	scheduler scheduler.Scheduler
-	processor model.Processor
-	isMaster  bool
-	end       chan byte // unbufferred channal
+	downloadThreadNum int
+	parseThreadNum    int //defaut is only one goroutine to parse result
+	parsers           []*model.Parser
+	scheduler         scheduler.Scheduler
+	processor         model.Processor
+	isMaster          bool
+	end               chan byte // unbufferred channal
 }
 
 func NewDistributedSqlCrawler(db *gorm.DB, config *model.DistributedConfig) *Crawler {
 	var crawler Crawler
 	crawler.isMaster = config.IsMaster
-	crawler.threadNum = config.ThreadNum
+	crawler.downloadThreadNum = config.ThreadNum
+	crawler.parseThreadNum = 1
 	appName = config.AppName
 	zkHosts = config.ZkHosts
 	lockersPath = "/" + appName + "/" + lockerDir
@@ -50,10 +52,11 @@ func NewDistributedSqlCrawler(db *gorm.DB, config *model.DistributedConfig) *Cra
 	return &crawler
 }
 
-func NewLocalSqlCrawler(db *gorm.DB, threadNum int) *Crawler {
+func NewLocalSqlCrawler(db *gorm.DB, downloadThreadNum int) *Crawler {
 	var crawler Crawler
 	crawler.isMaster = true
-	crawler.threadNum = threadNum
+	crawler.downloadThreadNum = downloadThreadNum
+	crawler.parseThreadNum = 1
 	sqlScheduler := scheduler.NewLocalSqlScheduler(db)
 	crawler.scheduler = sqlScheduler
 	crawler.processor = sqlScheduler
@@ -61,10 +64,11 @@ func NewLocalSqlCrawler(db *gorm.DB, threadNum int) *Crawler {
 	return &crawler
 }
 
-func NewLocalMemCrawler(threadNum int) *Crawler {
+func NewLocalMemCrawler(downloadThreadNum int) *Crawler {
 	var crawler Crawler
 	crawler.isMaster = true
-	crawler.threadNum = threadNum
+	crawler.downloadThreadNum = downloadThreadNum
+	crawler.parseThreadNum = 1
 	memScheduler := scheduler.NewLocalMemScheduler()
 	crawler.scheduler = memScheduler
 	crawler.processor = memScheduler
@@ -75,6 +79,10 @@ func NewLocalMemCrawler(threadNum int) *Crawler {
 // Stop the program
 func (this *Crawler) ShutDown() {
 	this.end <- byte(1)
+}
+
+func (this *Crawler) SetParseThreadNum(threadNum int) {
+	this.parseThreadNum = threadNum
 }
 
 func (this *Crawler) AddBaseTask(task model.Task) {
@@ -90,7 +98,7 @@ func (this *Crawler) AddParser(parser model.Parser) {
 func (this *Crawler) Run() {
 
 	// netWork Handle goroutine
-	for i := 0; i < this.threadNum; i++ {
+	for i := 0; i < this.downloadThreadNum; i++ {
 		go func(num int) {
 			tag := fmt.Sprintf("[goroutine %d]", num)
 			for {
@@ -105,7 +113,7 @@ func (this *Crawler) Run() {
 	}
 
 	//parser goroutine
-	for i := 0; i < this.threadNum; i++ {
+	for i := 0; i < this.parseThreadNum; i++ {
 
 		go func() {
 			for {
