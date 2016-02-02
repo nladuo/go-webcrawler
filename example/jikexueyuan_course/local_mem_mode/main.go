@@ -7,16 +7,22 @@ import (
 	crawler "github.com/nladuo/go-webcrawler"
 	"github.com/nladuo/go-webcrawler/model"
 	"log"
-	"os"
 	"strconv"
 )
 
 const (
-	identifier string = "jikexueyuan"
-	threadNum  int    = 3
+	PARSE_COURSE_URL    string = "parse_course_url"
+	PARSE_COURSE_DETAIL string = "parse_course_detail"
+	threadNum           int    = 3
 )
 
-func ParseCourse(res *model.Result, processor model.Processor) {
+var mCrawler *crawler.Crawler
+
+func ParseCourseDetail(res *model.Result, processor model.Processor) {
+
+}
+
+func ParseCourseUrl(res *model.Result, processor model.Processor) {
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(res.Response.Body))
 	if err != nil {
 		return
@@ -29,13 +35,13 @@ func ParseCourse(res *model.Result, processor model.Processor) {
 	pageNum, _ := strconv.Atoi(string(res.UserData))
 	log.Println("page num :", pageNum)
 	if pageNum == 50 {
-		os.Exit(0)
+		mCrawler.ShutDown()
 	}
 	if pageNum == 1 {
 		for i := 2; i < 52; i++ {
 			pageNumStr := strconv.Itoa(i)
 			task := model.Task{
-				Identifier: identifier,
+				Identifier: PARSE_COURSE_URL,
 				Url:        "http://www.jikexueyuan.com/course/?pageNum=" + pageNumStr,
 				UserData:   []byte(pageNumStr)}
 			processor.AddTask(task)
@@ -44,13 +50,13 @@ func ParseCourse(res *model.Result, processor model.Processor) {
 }
 
 func main() {
-	mCrawler := crawler.NewLocalMemCrawler(threadNum)
+	mCrawler = crawler.NewLocalMemCrawler(threadNum)
 	baseTask := model.Task{
-		Identifier: identifier,
+		Identifier: PARSE_COURSE_URL,
 		Url:        "http://www.jikexueyuan.com/course/?pageNum=1",
 		UserData:   []byte("1")}
 	mCrawler.AddBaseTask(baseTask)
-	parser := model.Parser{Identifier: identifier, Parse: ParseCourse}
+	parser := model.Parser{Identifier: PARSE_COURSE_URL, Parse: ParseCourseUrl}
 	mCrawler.AddParser(parser)
 	mCrawler.Run()
 }

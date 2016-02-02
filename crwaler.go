@@ -29,6 +29,7 @@ type Crawler struct {
 	scheduler scheduler.Scheduler
 	processor model.Processor
 	isMaster  bool
+	end       chan byte // unbufferred channal
 }
 
 func NewDistributedSqlCrawler(db *gorm.DB, config *model.DistributedConfig) *Crawler {
@@ -45,6 +46,7 @@ func NewDistributedSqlCrawler(db *gorm.DB, config *model.DistributedConfig) *Cra
 	sqlScheduler := scheduler.NewDistributedSqlScheduler(db, lockersPath, prefix, lockerTimeout)
 	crawler.scheduler = sqlScheduler
 	crawler.processor = sqlScheduler
+	crawler.end = make(chan byte)
 	return &crawler
 }
 
@@ -55,6 +57,7 @@ func NewLocalSqlCrawler(db *gorm.DB, threadNum int) *Crawler {
 	sqlScheduler := scheduler.NewLocalSqlScheduler(db)
 	crawler.scheduler = sqlScheduler
 	crawler.processor = sqlScheduler
+	crawler.end = make(chan byte)
 	return &crawler
 }
 
@@ -65,7 +68,13 @@ func NewLocalMemCrawler(threadNum int) *Crawler {
 	memScheduler := scheduler.NewLocalMemScheduler()
 	crawler.scheduler = memScheduler
 	crawler.processor = memScheduler
+	crawler.end = make(chan byte)
 	return &crawler
+}
+
+// Stop the program
+func (this *Crawler) ShutDown() {
+	this.end <- byte(1)
 }
 
 func (this *Crawler) AddBaseTask(task model.Task) {
@@ -80,6 +89,7 @@ func (this *Crawler) AddParser(parser model.Parser) {
 
 func (this *Crawler) Run() {
 
+	// netWork Handle goroutine
 	for i := 0; i < this.threadNum; i++ {
 		go func(num int) {
 			tag := fmt.Sprintf("[goroutine %d]", num)
@@ -94,13 +104,21 @@ func (this *Crawler) Run() {
 		}(i + 1)
 	}
 
-	for {
-		result := this.scheduler.GetResult()
-		for i := 0; i < len(this.parsers); i++ {
-			if this.parsers[i].Identifier == result.Identifier {
-				this.parsers[i].Parse(&result, this.processor)
-				break
+	//parser goroutine
+	for i := 0; i < this.threadNum; i++ {
+
+		go func() {
+			for {
+				result := this.scheduler.GetResult()
+				for i := 0; i < len(this.parsers); i++ {
+					if this.parsers[i].Identifier == result.Identifier {
+						this.parsers[i].Parse(&result, this.processor)
+						break
+					}
+				}
 			}
-		}
+		}()
 	}
+
+	<-this.end
 }
