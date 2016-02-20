@@ -8,14 +8,14 @@ type Task struct {
 	Identifier string
 	Url        string
 	UserData   []byte
-	proxy      string //for example http://127.0.0.1:1080/
+	proxy      Proxy
 }
 
-func (this *Task) SetProxy(proxy string) {
+func (this *Task) SetProxy(proxy Proxy) {
 	this.proxy = proxy
 }
 
-func (this *Task) GetProxy() string {
+func (this *Task) GetProxy() Proxy {
 	return this.proxy
 }
 

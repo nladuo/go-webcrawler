@@ -1,0 +1,55 @@
+package downloader
+
+import (
+	"github.com/nladuo/go-webcrawler/model"
+	"log"
+	"net/http"
+)
+
+const (
+	DEFAULT_RETRY_TIMES = 10
+)
+
+type DefaultDownloader struct {
+	retryTimes int
+}
+
+func NewDefaultDownloader() *DefaultDownloader {
+	var downloader DefaultDownloader
+	downloader.retryTimes = DEFAULT_RETRY_TIMES
+	return &downloader
+}
+
+func (this *DefaultDownloader) Download(tag string, task model.Task) *model.Result {
+	var err error
+	var resp *http.Response
+	var result model.Result
+	var retry_times = 0
+	log.Println(tag, "Start Download: ", task.Url)
+REDOWNLOAD:
+	if proxy := task.GetProxy(); len(proxy.IP) == 0 {
+		resp, err = dowloadDirect(task.Url)
+	} else {
+		resp, err = dowloadByProxy(task.Url, &proxy)
+	}
+
+	if err != nil {
+		if retry_times > this.retryTimes {
+			log.Println(tag, "Download Failed: ", task.Url, "Error:", err.Error())
+			return nil
+		}
+		retry_times++
+		goto REDOWNLOAD
+	}
+
+	result.Identifier = task.Identifier
+	result.Url = task.Url
+	result.UserData = task.UserData
+	result.Response, result.Err = model.GetResponse(resp)
+	log.Println(tag, "Download Success: ", task.Url)
+	return &result
+}
+
+func (this *DefaultDownloader) SetRetryTimes(times int) {
+	this.retryTimes = times
+}

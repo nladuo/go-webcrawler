@@ -6,6 +6,7 @@ import (
 	"sync"
 )
 
+//scheduler use memory as task and result queue
 type LocalMemScheduler struct {
 	locker        *sync.Mutex
 	taskList      *list.List

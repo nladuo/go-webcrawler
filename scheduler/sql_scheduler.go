@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// the distributed scheduler
+//scheduler use sql database as task and result queue
 type SqlScheduler struct {
 	db            *gorm.DB
 	tasks         chan model.Task
