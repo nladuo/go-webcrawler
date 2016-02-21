@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	netUrl "net/url"
+	//"time"
 )
 
 type Downloader interface {
@@ -38,5 +39,6 @@ func dowloadByProxy(url string, proxy *model.Proxy) (*http.Response, error) {
 			Proxy: http.ProxyURL(proxyUrl),
 		},
 	}
+	//client.Timeout = 10 * time.Second
 	return client.Do(request)
 }
