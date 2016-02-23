@@ -10,6 +10,7 @@ type Result struct {
 	Url        string
 	Response   *HttpResponse
 	UserData   []byte
+	UsedProxy  Proxy
 }
 
 //if the user think the result has been verified by anti-spider.
