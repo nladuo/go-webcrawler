@@ -116,6 +116,10 @@ func (this *Crawler) SetProxyGenerator(generater model.ProxyGenerator) {
 	this.downloader = downloader.NewProxyDownloader(generater)
 }
 
+func (this *Crawler) SetProxyTimeOut(timeout time.Duration) {
+	downloader.SetProxyTimeOut(timeout)
+}
+
 func (this *Crawler) Run() {
 	if this.downloader == nil {
 		this.downloader = downloader.NewDefaultDownloader()

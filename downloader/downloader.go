@@ -1,12 +1,16 @@
 package downloader
 
 import (
-	"errors"
+	//"errors"
 	"github.com/nladuo/go-webcrawler/model"
-	"log"
+	//"log"
 	"net/http"
 	netUrl "net/url"
-	//"time"
+	"time"
+)
+
+var (
+	proxyTimeOut time.Duration = time.Duration(0)
 )
 
 type Downloader interface {
@@ -20,16 +24,7 @@ func dowloadDirect(url string) (*http.Response, error) {
 
 func dowloadByProxy(url string, proxy *model.Proxy) (*http.Response, error) {
 	request, _ := http.NewRequest("GET", url, nil)
-	proxyStr := proxy.IP + ":" + proxy.Port
-	switch proxy.Type {
-	case model.TYPE_HTTP:
-		proxyStr = "http://" + proxyStr
-	case model.TYPE_HTTPS:
-		proxyStr = "https://" + proxyStr
-	default:
-		log.Println("You set a proxy of which type is neither HTTP nor HTTPS")
-		return nil, errors.New(model.ErrProxyTypeNotExist)
-	}
+	proxyStr := "http://" + proxy.IP + ":" + proxy.Port
 	proxyUrl, err := netUrl.Parse(proxyStr)
 	if err != nil {
 		return nil, err
@@ -39,6 +34,13 @@ func dowloadByProxy(url string, proxy *model.Proxy) (*http.Response, error) {
 			Proxy: http.ProxyURL(proxyUrl),
 		},
 	}
-	//client.Timeout = 10 * time.Second
+	//if has time out
+	if !(proxyTimeOut == time.Duration(0)) {
+		client.Timeout = proxyTimeOut
+	}
 	return client.Do(request)
+}
+
+func SetProxyTimeOut(timeout time.Duration) {
+	proxyTimeOut = timeout
 }
