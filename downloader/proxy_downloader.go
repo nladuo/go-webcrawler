@@ -34,10 +34,11 @@ REDOWNLOAD:
 		log.Println(tag, "You haven't set proxy.")
 		return nil
 	} else {
-		resp, err = dowloadByProxy(task.Url, &proxy)
+		resp, err = dowloadWithProxy(task.Url, &proxy)
 	}
 
 	if err != nil {
+		log.Println(tag, "Download error occurred:", err.Error())
 		this.generator.ChangeProxy(&proxy)
 		goto REDOWNLOAD
 	}

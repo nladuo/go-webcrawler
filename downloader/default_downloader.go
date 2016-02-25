@@ -30,7 +30,7 @@ REDOWNLOAD:
 	if proxy := task.GetProxy(); len(proxy.IP) == 0 {
 		resp, err = dowloadDirect(task.Url)
 	} else {
-		resp, err = dowloadByProxy(task.Url, &proxy)
+		resp, err = dowloadWithProxy(task.Url, &proxy)
 	}
 
 	if err != nil {

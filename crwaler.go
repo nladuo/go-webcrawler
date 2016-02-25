@@ -8,6 +8,8 @@ import (
 	"github.com/nladuo/go-webcrawler/model"
 	"github.com/nladuo/go-webcrawler/scheduler"
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"time"
 )
 
@@ -124,6 +126,9 @@ func (this *Crawler) Run() {
 	if this.downloader == nil {
 		this.downloader = downloader.NewDefaultDownloader()
 	}
+
+	log.Println("Crawler start running")
+
 	// netWork Handle goroutine
 	for i := 0; i < this.threadNum; i++ {
 		go func(num int) {
@@ -150,4 +155,12 @@ func (this *Crawler) Run() {
 			}
 		}
 	}
+}
+
+//for debug
+func (this *Crawler) SetPProfPort(port string) {
+	go func() {
+		log.Println(http.ListenAndServe("localhost:"+port, nil))
+	}()
+
 }
