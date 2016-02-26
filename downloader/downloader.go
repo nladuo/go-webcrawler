@@ -11,7 +11,7 @@ import (
 
 var (
 	//default time out when downloading with proxy
-	proxyTimeOut time.Duration = 50 * time.Second
+	proxyTimeOut time.Duration = 0 * time.Second
 )
 
 type Downloader interface {
@@ -35,7 +35,10 @@ func dowloadWithProxy(url string, proxy *model.Proxy) (*http.Response, error) {
 			Proxy: http.ProxyURL(proxyUrl),
 		},
 	}
-	client.Timeout = proxyTimeOut
+	if proxyTimeOut != 0*time.Second {
+		client.Timeout = proxyTimeOut
+	}
+
 	return client.Do(request)
 }
 
