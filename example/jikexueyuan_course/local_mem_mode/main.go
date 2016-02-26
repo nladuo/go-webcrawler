@@ -7,6 +7,7 @@ import (
 	crawler "github.com/nladuo/go-webcrawler"
 	"github.com/nladuo/go-webcrawler/model"
 	"log"
+	"os"
 	"strconv"
 )
 
@@ -35,7 +36,7 @@ func ParseCourseUrl(res *model.Result, processor model.Processor) {
 	pageNum, _ := strconv.Atoi(string(res.UserData))
 	log.Println("page num :", pageNum)
 	if pageNum == 50 {
-		mCrawler.ShutDown()
+		os.Exit(0)
 	}
 	if pageNum == 1 {
 		for i := 2; i < 52; i++ {

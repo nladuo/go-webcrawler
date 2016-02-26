@@ -46,6 +46,9 @@ REDOWNLOAD:
 	result.Url = task.Url
 	result.UserData = task.UserData
 	result.Response, result.Err = model.GetResponse(resp)
+	if result.Err != nil {
+		goto REDOWNLOAD
+	}
 	log.Println(tag, "Download Success: ", task.Url)
 	return &result
 }
