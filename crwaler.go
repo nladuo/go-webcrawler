@@ -127,7 +127,7 @@ func (this *Crawler) Run() {
 		this.downloader = downloader.NewDefaultDownloader()
 	}
 
-	log.Println("Crawler start running")
+	log.Println("Crawler start running....")
 
 	// netWork Handle goroutine
 	for i := 0; i < this.threadNum; i++ {
@@ -162,5 +162,4 @@ func (this *Crawler) SetPProfPort(port string) {
 	go func() {
 		log.Println(http.ListenAndServe("localhost:"+port, nil))
 	}()
-
 }

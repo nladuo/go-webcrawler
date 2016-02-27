@@ -69,6 +69,8 @@ func (this *SqlScheduler) unLock() {
 	}
 }
 
+//serialize data(task or result) and store into sql db.
+//  or unserialize data from sql db.
 func (this *SqlScheduler) manipulateDataLoop() {
 	for {
 		select {
@@ -84,8 +86,8 @@ func (this *SqlScheduler) manipulateDataLoop() {
 				}
 			}
 		case <-this.getTaskChan: // get task does need lock
+			this.lock()
 			if len(this.tasks) < extract_count {
-				this.lock()
 				tasks := getTasks(this.db, extract_count)
 				for i := 0; i < len(tasks); i++ {
 					t, err := model.UnSerializeTask(tasks[i].Data)
@@ -94,8 +96,8 @@ func (this *SqlScheduler) manipulateDataLoop() {
 					}
 					this.tasks <- t
 				}
-				this.unLock()
 			}
+			this.unLock()
 		case <-this.addResultChan: // add result does not need lock
 			if len(this.results) > store_to_sql_count {
 				for i := 0; i < store_count; i++ {
@@ -108,8 +110,8 @@ func (this *SqlScheduler) manipulateDataLoop() {
 				}
 			}
 		case <-this.getResultChan: // get result does need lock
+			this.lock()
 			if len(this.results) < extract_from_sql_count {
-				this.lock()
 				results := getResults(this.db, extract_count)
 				for i := 0; i < len(results); i++ {
 					r, err := model.UnSerializeResult(results[i].Data)
@@ -118,10 +120,30 @@ func (this *SqlScheduler) manipulateDataLoop() {
 					}
 					this.results <- r
 				}
-				this.unLock()
 			}
+			this.unLock()
 		}
 	}
+}
+
+// double avoidance for the condition that no task in tasks channel.
+func (this *SqlScheduler) checkOutTaskCh() {
+	for {
+		time.Sleep(10 * time.Second)
+		this.lock()
+		if len(this.tasks) == 0 {
+			tasks := getTasks(this.db, extract_count)
+			for i := 0; i < len(tasks); i++ {
+				t, err := model.UnSerializeTask(tasks[i].Data)
+				if err != nil {
+					continue
+				}
+				this.tasks <- t
+			}
+		}
+		this.unLock()
+	}
+
 }
 
 func (this *SqlScheduler) AddTask(task model.Task) {

@@ -38,17 +38,17 @@ func (this *LocalMemScheduler) manipulateDataLoop() {
 	for {
 		select {
 		case <-this.addTaskChan:
+			this.locker.Lock()
 			if len(this.tasks) > store_to_sql_count {
-				this.locker.Lock()
 				for i := 0; i < store_count; i++ {
 					t := <-this.tasks
 					this.taskList.PushBack(t)
 				}
-				this.locker.Unlock()
 			}
+			this.locker.Unlock()
 		case <-this.getTaskChan:
+			this.locker.Lock()
 			if len(this.tasks) < extract_count {
-				this.locker.Lock()
 				popCount := extract_count
 				if this.taskList.Len() < extract_count {
 					popCount = this.taskList.Len()
@@ -59,20 +59,20 @@ func (this *LocalMemScheduler) manipulateDataLoop() {
 					this.taskList.Remove(e) // delete the first task
 					this.tasks <- t
 				}
-				this.locker.Unlock()
 			}
+			this.locker.Unlock()
 		case <-this.addResultChan:
+			this.locker.Lock()
 			if len(this.results) > store_to_sql_count {
-				this.locker.Lock()
 				for i := 0; i < store_count; i++ {
 					r := <-this.results
 					this.resultList.PushBack(r)
 				}
-				this.locker.Unlock()
 			}
+			this.locker.Unlock()
 		case <-this.getResultChan:
+			this.locker.Lock()
 			if len(this.results) < extract_from_sql_count {
-				this.locker.Lock()
 				popCount := extract_count
 				if this.taskList.Len() < extract_count {
 					popCount = this.taskList.Len()
@@ -83,8 +83,8 @@ func (this *LocalMemScheduler) manipulateDataLoop() {
 					this.resultList.Remove(e) // delete the first task
 					this.results <- r
 				}
-				this.locker.Unlock()
 			}
+			this.locker.Unlock()
 		}
 	}
 }
