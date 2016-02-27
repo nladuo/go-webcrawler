@@ -3,7 +3,9 @@ package scheduler
 import (
 	"container/list"
 	"github.com/nladuo/go-webcrawler/model"
+	"log"
 	"sync"
+	"time"
 )
 
 //scheduler use memory as task and result queue
@@ -30,8 +32,17 @@ func NewLocalMemScheduler() *LocalMemScheduler {
 	scheduler.getResultChan = make(chan byte, chan_buffer_size)
 	scheduler.addTaskChan = make(chan byte, chan_buffer_size)
 	scheduler.getTaskChan = make(chan byte, chan_buffer_size)
+	go scheduler.logTaskAndResultNum()
 	go scheduler.manipulateDataLoop()
 	return &scheduler
+}
+
+func (this *LocalMemScheduler) logTaskAndResultNum() {
+	for {
+		time.Sleep(3 * time.Second)
+		log.Println("task num:", len(this.tasks))
+		log.Println("result num:", len(this.results))
+	}
 }
 
 func (this *LocalMemScheduler) manipulateDataLoop() {

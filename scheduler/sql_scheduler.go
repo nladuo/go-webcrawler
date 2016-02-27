@@ -33,7 +33,16 @@ func newSqlScheduler(db *gorm.DB) *SqlScheduler {
 	scheduler.addTaskChan = make(chan byte, chan_buffer_size)
 	scheduler.getTaskChan = make(chan byte, chan_buffer_size)
 	createTable(db)
+	go scheduler.logTaskAndResultNum()
 	return &scheduler
+}
+
+func (this *SqlScheduler) logTaskAndResultNum() {
+	for {
+		time.Sleep(3 * time.Second)
+		log.Println("task num:", len(this.tasks))
+		log.Println("result num:", len(this.results))
+	}
 }
 
 func NewDistributedSqlScheduler(db *gorm.DB, basePath, prefix string, timeout time.Duration) *SqlScheduler {
@@ -41,6 +50,7 @@ func NewDistributedSqlScheduler(db *gorm.DB, basePath, prefix string, timeout ti
 	scheduler.dLocker = DLocker.NewLocker(basePath, prefix, timeout)
 	scheduler.isCluster = true
 	go scheduler.manipulateDataLoop()
+	go scheduler.checkOutTaskCh()
 	return scheduler
 }
 
@@ -49,6 +59,7 @@ func NewLocalSqlScheduler(db *gorm.DB) *SqlScheduler {
 	scheduler.basicLocker = &sync.Mutex{}
 	scheduler.isCluster = false
 	go scheduler.manipulateDataLoop()
+	go scheduler.checkOutTaskCh()
 	return scheduler
 }
 
