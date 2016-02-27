@@ -25,8 +25,8 @@ func (this *DefaultDownloader) Download(tag string, task model.Task) *model.Resu
 	var resp *http.Response
 	var result model.Result
 	var retry_times = 0
-	log.Println(tag, "Start Download: ", task.Url)
 REDOWNLOAD:
+	log.Println(tag, "Start Download: ", task.Url)
 	if proxy := task.GetProxy(); len(proxy.IP) == 0 {
 		resp, err = dowloadDirect(task.Url)
 	} else {
@@ -47,6 +47,7 @@ REDOWNLOAD:
 	result.UserData = task.UserData
 	result.Response, result.Err = model.GetResponse(resp)
 	if result.Err != nil {
+		log.Println(tag, "Getting Resp.Body error occurred:", result.Err.Error())
 		goto REDOWNLOAD
 	}
 	log.Println(tag, "Download Success: ", task.Url)

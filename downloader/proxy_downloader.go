@@ -27,8 +27,8 @@ func (this *ProxyDownloader) Download(tag string, task model.Task) *model.Result
 	var resp *http.Response
 	var result model.Result
 	//var retry_times = 0
-	log.Println(tag, "Start Download: ", task.Url)
 REDOWNLOAD:
+	log.Println(tag, "Start Download: ", task.Url)
 	var proxy model.Proxy
 	if proxy = this.generator.GetProxy(); len(proxy.IP) == 0 {
 		log.Println(tag, "You haven't set proxy.")
@@ -48,6 +48,7 @@ REDOWNLOAD:
 	result.UserData = task.UserData
 	result.Response, result.Err = model.GetResponse(resp)
 	if result.Err != nil {
+		log.Println(tag, "Getting Resp.Body error occurred:", result.Err.Error())
 		goto REDOWNLOAD
 	}
 	log.Println(tag, "Download Success: ", task.Url)

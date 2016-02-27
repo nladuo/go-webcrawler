@@ -136,7 +136,7 @@ func (this *Crawler) Run() {
 			for {
 				task := this.scheduler.GetTask()
 				result := this.downloader.Download(tag, task)
-				if result == nil {
+				if (result == nil) || (result.Err != nil) {
 					continue
 				}
 				this.scheduler.AddResult(*result)

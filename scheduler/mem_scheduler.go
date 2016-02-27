@@ -39,7 +39,7 @@ func NewLocalMemScheduler() *LocalMemScheduler {
 
 func (this *LocalMemScheduler) logTaskAndResultNum() {
 	for {
-		time.Sleep(3 * time.Second)
+		time.Sleep(3 * time.Minute)
 		log.Println("task num:", len(this.tasks))
 		log.Println("result num:", len(this.results))
 	}
