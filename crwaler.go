@@ -158,7 +158,7 @@ func (this *Crawler) Run() {
 	go func() {
 		for {
 			result := this.scheduler.GetResult()
-			log.Println("Get task, Identifier: " + result.Identifier)
+			log.Println("Get Result, Identifier: " + result.Identifier)
 			for i := 0; i < len(this.parsers); i++ {
 				if this.parsers[i].Identifier == result.Identifier {
 					this.parsers[i].Parse(&result, this.processor)

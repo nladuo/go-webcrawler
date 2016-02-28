@@ -18,6 +18,7 @@ func GetResponse(response *http.Response) (*HttpResponse, error) {
 	var err error
 	http_resp.Body, err = ioutil.ReadAll(response.Body)
 	if err != nil {
+		response.Body.Close()
 		return nil, err
 	}
 	http_resp.Cookies = response.Cookies()
