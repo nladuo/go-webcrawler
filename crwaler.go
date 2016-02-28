@@ -34,7 +34,8 @@ type Crawler struct {
 	scheduler  scheduler.Scheduler
 	processor  model.Processor
 	downloader downloader.Downloader
-	isMaster   bool //only the master crawler excute the Crawler.AddBaseTask
+	isMaster   bool      //only the master crawler excute the Crawler.AddBaseTask
+	end        chan byte //unbufferred channel
 }
 
 //used for distributed mode,need zookeeper
@@ -61,6 +62,9 @@ func NewDistributedSqlCrawler(db *gorm.DB, config *model.DistributedConfig) *Cra
 	crawler.scheduler = sqlScheduler
 	crawler.processor = sqlScheduler
 
+	//make unbufferred channel
+	crawler.end = make(chan byte, 0)
+
 	//set the downloader to nil
 	crawler.downloader = nil
 	return &crawler
@@ -79,6 +83,9 @@ func NewLocalSqlCrawler(db *gorm.DB, threadNum int) *Crawler {
 	crawler.scheduler = sqlScheduler
 	crawler.processor = sqlScheduler
 
+	//make unbufferred channel
+	crawler.end = make(chan byte, 0)
+
 	//set the downloader to nil
 	crawler.downloader = nil
 	return &crawler
@@ -95,6 +102,9 @@ func NewLocalMemCrawler(threadNum int) *Crawler {
 	memScheduler := scheduler.NewLocalMemScheduler()
 	crawler.scheduler = memScheduler
 	crawler.processor = memScheduler
+
+	//make unbufferred channel
+	crawler.end = make(chan byte, 0)
 
 	//set the downloader to nil
 	crawler.downloader = nil
@@ -145,16 +155,19 @@ func (this *Crawler) Run() {
 	}
 
 	//parser the result
-	for {
-		result := this.scheduler.GetResult()
-		log.Println("Get task, Identifier: " + result.Identifier)
-		for i := 0; i < len(this.parsers); i++ {
-			if this.parsers[i].Identifier == result.Identifier {
-				this.parsers[i].Parse(&result, this.processor)
-				break
+	go func() {
+		for {
+			result := this.scheduler.GetResult()
+			log.Println("Get task, Identifier: " + result.Identifier)
+			for i := 0; i < len(this.parsers); i++ {
+				if this.parsers[i].Identifier == result.Identifier {
+					this.parsers[i].Parse(&result, this.processor)
+					break
+				}
 			}
 		}
-	}
+	}()
+	<-this.end
 }
 
 //for debug
