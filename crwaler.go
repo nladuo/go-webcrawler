@@ -154,20 +154,18 @@ func (this *Crawler) Run() {
 		}(i + 1)
 	}
 
-	//parser the result
-	go func() {
-		for {
-			result := this.scheduler.GetResult()
-			log.Println("Get Result, Identifier: " + result.Identifier)
-			for i := 0; i < len(this.parsers); i++ {
-				if this.parsers[i].Identifier == result.Identifier {
-					this.parsers[i].Parse(&result, this.processor)
-					break
-				}
+	//parse the result
+	for {
+		result := this.scheduler.GetResult()
+		log.Println("Get Result, Identifier: " + result.Identifier)
+		for i := 0; i < len(this.parsers); i++ {
+			if this.parsers[i].Identifier == result.Identifier {
+				this.parsers[i].Parse(&result, this.processor)
+				break
 			}
 		}
-	}()
-	<-this.end
+	}
+	// <-this.end
 }
 
 //for debug

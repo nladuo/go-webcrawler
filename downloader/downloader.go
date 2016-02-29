@@ -11,7 +11,7 @@ import (
 
 var (
 	//default timeout
-	proxyTimeOut time.Duration = 60 * time.Second
+	proxyTimeOut time.Duration = 40 * time.Second
 )
 
 type Downloader interface {

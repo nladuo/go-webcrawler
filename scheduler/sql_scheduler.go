@@ -50,7 +50,6 @@ func NewDistributedSqlScheduler(db *gorm.DB, basePath, prefix string, timeout ti
 	scheduler.dLocker = DLocker.NewLocker(basePath, prefix, timeout)
 	scheduler.isCluster = true
 	go scheduler.manipulateDataLoop()
-	go scheduler.checkOutTaskCh()
 	return scheduler
 }
 
@@ -59,7 +58,6 @@ func NewLocalSqlScheduler(db *gorm.DB) *SqlScheduler {
 	scheduler.basicLocker = &sync.Mutex{}
 	scheduler.isCluster = false
 	go scheduler.manipulateDataLoop()
-	go scheduler.checkOutTaskCh()
 	return scheduler
 }
 
@@ -135,26 +133,6 @@ func (this *SqlScheduler) manipulateDataLoop() {
 			this.unLock()
 		}
 	}
-}
-
-// double avoidance for the condition that no task in tasks channel.
-func (this *SqlScheduler) checkOutTaskCh() {
-	for {
-		time.Sleep(10 * time.Second)
-		this.lock()
-		if len(this.tasks) == 0 {
-			tasks := getTasks(this.db, extract_count)
-			for i := 0; i < len(tasks); i++ {
-				t, err := model.UnSerializeTask(tasks[i].Data)
-				if err != nil {
-					continue
-				}
-				this.tasks <- t
-			}
-		}
-		this.unLock()
-	}
-
 }
 
 func (this *SqlScheduler) AddTask(task model.Task) {
