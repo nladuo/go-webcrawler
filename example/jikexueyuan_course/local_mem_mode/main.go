@@ -19,11 +19,11 @@ const (
 
 var mCrawler *crawler.Crawler
 
-func ParseCourseDetail(res *model.Result, processor model.Processor) {
+func ParseCourseDetail(res model.Result, processor model.Processor) {
 
 }
 
-func ParseCourseUrl(res *model.Result, processor model.Processor) {
+func ParseCourseUrl(res model.Result, processor model.Processor) {
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(res.Response.Body))
 	if err != nil {
 		return

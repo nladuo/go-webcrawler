@@ -146,10 +146,10 @@ func (this *Crawler) Run() {
 			for {
 				task := this.scheduler.GetTask()
 				result := this.downloader.Download(tag, task)
-				if (result == nil) || (result.Err != nil) {
+				if result.Err != nil {
 					continue
 				}
-				this.scheduler.AddResult(*result)
+				this.scheduler.AddResult(result)
 			}
 		}(i + 1)
 	}
@@ -160,7 +160,7 @@ func (this *Crawler) Run() {
 		log.Println("Get Result, Identifier: " + result.Identifier)
 		for i := 0; i < len(this.parsers); i++ {
 			if this.parsers[i].Identifier == result.Identifier {
-				this.parsers[i].Parse(&result, this.processor)
+				this.parsers[i].Parse(result, this.processor)
 				break
 			}
 		}

@@ -8,20 +8,19 @@ type Result struct {
 	Identifier string
 	Err        error
 	Url        string
-	Response   *HttpResponse
+	Response   HttpResponse
 	UserData   []byte
 	UsedProxy  Proxy
 }
 
 //if the user think the result has been verified by anti-spider.
 // the user can change the proxy ip, and readd the initial task to the queue.
-func (this *Result) GetInitialTask() *Task {
-	task := Task{
+func (this *Result) GetInitialTask() Task {
+	return Task{
 		Identifier: this.Identifier,
 		Url:        this.Url,
 		UserData:   this.UserData,
 	}
-	return &task
 }
 
 func (this *Result) Serialize() (string, error) {

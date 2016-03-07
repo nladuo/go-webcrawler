@@ -13,18 +13,18 @@ type HttpResponse struct {
 	ContentLength int64
 }
 
-func GetResponse(response *http.Response) (*HttpResponse, error) {
+func GetResponse(response *http.Response) (HttpResponse, error) {
 	var http_resp HttpResponse
 	var err error
 	http_resp.Body, err = ioutil.ReadAll(response.Body)
 	if err != nil {
 		response.Body.Close()
-		return nil, err
+		return http_resp, err
 	}
 	http_resp.Cookies = response.Cookies()
 	http_resp.Header = response.Header
 	http_resp.StatusCode = response.StatusCode
 	http_resp.ContentLength = response.ContentLength
 	err = response.Body.Close()
-	return &http_resp, err
+	return http_resp, err
 }

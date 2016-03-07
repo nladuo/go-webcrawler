@@ -1,6 +1,7 @@
 package downloader
 
 import (
+	"errors"
 	"github.com/nladuo/go-webcrawler/model"
 	"log"
 	"net/http"
@@ -20,7 +21,7 @@ func NewDefaultDownloader() *DefaultDownloader {
 	return &downloader
 }
 
-func (this *DefaultDownloader) Download(tag string, task model.Task) *model.Result {
+func (this *DefaultDownloader) Download(tag string, task model.Task) model.Result {
 	var err error
 	var resp *http.Response
 	var result model.Result
@@ -30,13 +31,13 @@ REDOWNLOAD:
 	if proxy := task.GetProxy(); len(proxy.IP) == 0 {
 		resp, err = dowloadDirect(task.Url)
 	} else {
-		resp, err = dowloadWithProxy(task.Url, &proxy)
+		resp, err = dowloadWithProxy(task.Url, proxy)
 	}
 
 	if err != nil {
 		if retry_times > this.retryTimes {
 			log.Println(tag, "Download Failed: ", task.Url, "Error:", err.Error())
-			return nil
+			return model.Result{Err: errors.New(ErrProxyNotSet)}
 		}
 		retry_times++
 		goto REDOWNLOAD
@@ -51,7 +52,7 @@ REDOWNLOAD:
 		goto REDOWNLOAD
 	}
 	log.Println(tag, "Download Success: ", task.Url)
-	return &result
+	return result
 }
 
 func (this *DefaultDownloader) SetRetryTimes(times int) {

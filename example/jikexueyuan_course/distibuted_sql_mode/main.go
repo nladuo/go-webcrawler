@@ -17,7 +17,7 @@ const (
 	identifier string = "jikexueyuan"
 )
 
-func ParseCourse(res *model.Result, processor model.Processor) {
+func ParseCourse(res model.Result, processor model.Processor) {
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(res.Response.Body))
 	if err != nil {
 		return
