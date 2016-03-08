@@ -45,9 +45,9 @@ func (this *SqlScheduler) logTaskAndResultNum() {
 	}
 }
 
-func NewDistributedSqlScheduler(db *gorm.DB, basePath, prefix string, timeout time.Duration) *SqlScheduler {
+func NewDistributedSqlScheduler(db *gorm.DB, basePath string, timeout time.Duration) *SqlScheduler {
 	scheduler := newSqlScheduler(db)
-	scheduler.dLocker = DLocker.NewLocker(basePath, prefix, timeout)
+	scheduler.dLocker = DLocker.NewLocker(basePath, timeout)
 	scheduler.isCluster = true
 	go scheduler.manipulateDataLoop()
 	return scheduler

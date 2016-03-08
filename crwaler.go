@@ -15,7 +15,6 @@ import (
 
 // arguments for zookeeper
 const (
-	prefix    string = "lock-"
 	lockerDir string = "locker"
 )
 
@@ -58,7 +57,7 @@ func NewDistributedSqlCrawler(db *gorm.DB, config *model.DistributedConfig) *Cra
 	DLocker.CreatePath("/" + appName)
 
 	//initialize the scheduler
-	sqlScheduler := scheduler.NewDistributedSqlScheduler(db, lockersPath, prefix, lockerTimeout)
+	sqlScheduler := scheduler.NewDistributedSqlScheduler(db, lockersPath, lockerTimeout)
 	crawler.scheduler = sqlScheduler
 	crawler.processor = sqlScheduler
 
