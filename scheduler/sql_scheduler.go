@@ -63,8 +63,7 @@ func NewLocalSqlScheduler(db *gorm.DB) *SqlScheduler {
 
 func (this *SqlScheduler) lock() {
 	if this.isCluster {
-		for !this.dLocker.Lock() {
-		}
+		this.dLocker.Lock()
 	} else {
 		this.basicLocker.Lock()
 	}
