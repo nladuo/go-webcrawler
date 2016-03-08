@@ -15,7 +15,7 @@ go get github.com/PuerkitoBio/goquery
 ## About the Modes of go-webcrawler
 go-webcrawler is a simple web crawler framework to let you build concurrent and distributed web crawler application. There are three modes of go-webcrawler: local memory mode, local sql mode and distributed sql mode.
 #### Local Memory Mode
-In this mode, the framework would store the intermediate data directly into memory. If the url list's size of your web crawler application would not grow exponentially, or you PC's memory is big enough for use, you can use this mode.
+In this mode, the framework would store the intermediate data directly into memory. If the url list's size of your web crawler application would not grow exponentially, or you PC's memory is big enough to utilize, you can use this mode.
 
 #### Local Sql Mode
 In this mode, the framework would store the intermediate data into a sql database. Because of using a ORM framework for database manipulation, you can use sqlite3, postgreSQL, mysql and so on... You would not worry about the the exponentially growing request urls.
