@@ -41,6 +41,7 @@ REDOWNLOAD:
 	if err != nil {
 		log.Println(tag, "Download error occurred:", err.Error())
 		this.generator.ChangeProxy(proxy)
+		resp = nil
 		goto REDOWNLOAD
 	}
 
@@ -50,11 +51,12 @@ REDOWNLOAD:
 	result.Response, result.Err = model.GetResponse(resp)
 	if result.Err != nil {
 		log.Println(tag, "Getting Resp.Body error occurred:", result.Err.Error())
+		resp = nil
 		goto REDOWNLOAD
 	}
+	resp = nil
 	log.Println(tag, "Download Success: ", task.Url)
 	return result
-
 }
 
 func (this *ProxyDownloader) SetRetryTimes(times int) {
