@@ -41,7 +41,8 @@ func ParseCourseUrl(res model.Result, processor model.Processor) {
 			task := model.Task{
 				Identifier: PARSE_COURSE_URL,
 				Url:        "http://www.jikexueyuan.com/course/?pageNum=" + pageNumStr,
-				UserData:   []byte(pageNumStr)}
+				UserData:   []byte(pageNumStr),
+			}
 			processor.AddTask(task)
 		}
 	}

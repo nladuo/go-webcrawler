@@ -153,8 +153,8 @@ func (this *Crawler) Run() {
 
 	for {
 		task := this.scheduler.GetTask()
-		chanLen := this.threadManager.GetOccupation()
-		tag := fmt.Sprintf("[goroutine %d]", chanLen)
+		tag_int := this.threadManager.GetOccupation()
+		tag := fmt.Sprintf("[goroutine %d]", tag_int)
 		go func(tag string, task model.Task) { //async download task
 			result := this.downloader.Download(tag, task)
 			if result.Err != nil {
@@ -179,13 +179,11 @@ func (this *Crawler) ShutDown() {
 		panic(errors.New(ErrShutDownCrawler))
 	}
 	this.threadManager.GetOccupation()
-
+	time.Sleep(100 * time.Millisecond)
 	if this.scheduler.GetTaskSize() == 0 {
 		// if there is no task in taskchan, shutdown the crawler
 		log.Println("Crawler has finished....")
 		os.Exit(0)
-	} else {
-		time.Sleep(100 * time.Millisecond)
 	}
 	this.threadManager.FreeOccupation()
 

@@ -12,9 +12,7 @@ import (
 type LocalMemScheduler struct {
 	locker      *sync.Mutex
 	taskList    *list.List
-	resultList  *list.List
 	tasks       chan model.Task
-	results     chan model.Result
 	getTaskChan chan byte
 	addTaskChan chan byte
 }
@@ -23,9 +21,7 @@ func NewLocalMemScheduler() *LocalMemScheduler {
 	var scheduler LocalMemScheduler
 	scheduler.locker = &sync.Mutex{}
 	scheduler.taskList = list.New()
-	scheduler.resultList = list.New()
 	scheduler.tasks = make(chan model.Task, chan_buffer_size)
-	scheduler.results = make(chan model.Result, chan_buffer_size)
 	scheduler.addTaskChan = make(chan byte, chan_buffer_size)
 	scheduler.getTaskChan = make(chan byte, chan_buffer_size)
 	go scheduler.logTaskAndResultNum()
@@ -37,7 +33,6 @@ func (this *LocalMemScheduler) logTaskAndResultNum() {
 	for {
 		time.Sleep(3 * time.Minute)
 		log.Println("task num:", len(this.tasks))
-		log.Println("result num:", len(this.results))
 	}
 }
 

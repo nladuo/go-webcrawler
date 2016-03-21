@@ -13,7 +13,6 @@ import (
 type SqlScheduler struct {
 	db          *gorm.DB
 	tasks       chan model.Task
-	results     chan model.Result
 	dLocker     *DLocker.Dlocker
 	basicLocker *sync.Mutex
 	isCluster   bool
@@ -25,7 +24,6 @@ func newSqlScheduler(db *gorm.DB) *SqlScheduler {
 	var scheduler SqlScheduler
 	scheduler.db = db
 	scheduler.tasks = make(chan model.Task, chan_buffer_size)
-	scheduler.results = make(chan model.Result, chan_buffer_size)
 	scheduler.addTaskChan = make(chan byte, chan_buffer_size)
 	scheduler.getTaskChan = make(chan byte, chan_buffer_size)
 	createTable(db)
@@ -37,7 +35,6 @@ func (this *SqlScheduler) logTaskAndResultNum() {
 	for {
 		time.Sleep(3 * time.Minute)
 		log.Println("task num:", len(this.tasks))
-		log.Println("result num:", len(this.results))
 	}
 }
 
