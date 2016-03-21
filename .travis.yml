@@ -1,0 +1,13 @@
+language: go
+
+go:
+    - 1.5
+    - tip
+
+script:
+    - go test -v ./...
+
+install:
+    - go get github.com/PuerkitoBio/goquery
+    - go get github.com/nladuo/DLocker
+    - go get github.com/samuel/go-zookeeper/zk

@@ -8,6 +8,5 @@ import (
 type Scheduler interface {
 	AddTask(task model.Task)
 	GetTask() model.Task
-	AddResult(result model.Result)
-	GetResult() model.Result
+	GetTaskSize() int
 }

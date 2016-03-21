@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	identifier string = "jikexueyuan"
+	identifier string = "解析课程名称"
 )
 
 func ParseCourse(res model.Result, processor model.Processor) {

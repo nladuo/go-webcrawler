@@ -1,6 +1,7 @@
 package crawler
 
 import (
+	"errors"
 	"fmt"
 	"github.com/jinzhu/gorm"
 	"github.com/nladuo/DLocker"
@@ -10,7 +11,12 @@ import (
 	"log"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
 	"time"
+)
+
+const (
+	ErrShutDownCrawler string = "Cannot ShutDown the crwaler when "
 )
 
 // arguments for zookeeper
@@ -28,13 +34,14 @@ var (
 )
 
 type Crawler struct {
-	threadNum  int
-	parsers    []*model.Parser
-	scheduler  scheduler.Scheduler
-	processor  model.Processor
-	downloader downloader.Downloader
-	isMaster   bool      //only the master crawler excute the Crawler.AddBaseTask
-	end        chan byte //unbufferred channel
+	threadNum     int
+	parsers       []*model.Parser
+	scheduler     scheduler.Scheduler
+	processor     model.Processor
+	downloader    downloader.Downloader
+	isMaster      bool      //only the master crawler excute the Crawler.AddBaseTask
+	end           chan byte //unbufferred channel
+	threadManager *model.ThreadManager
 }
 
 //used for distributed mode,need zookeeper
@@ -66,6 +73,8 @@ func NewDistributedSqlCrawler(db *gorm.DB, config *model.DistributedConfig) *Cra
 
 	//set the downloader to nil
 	crawler.downloader = nil
+	//set the thread_manager to nil
+	crawler.threadManager = nil
 	return &crawler
 }
 
@@ -87,6 +96,8 @@ func NewLocalSqlCrawler(db *gorm.DB, threadNum int) *Crawler {
 
 	//set the downloader to nil
 	crawler.downloader = nil
+	//set the thread_manager to nil
+	crawler.threadManager = nil
 	return &crawler
 }
 
@@ -136,35 +147,48 @@ func (this *Crawler) Run() {
 		this.downloader = downloader.NewDefaultDownloader()
 	}
 
+	this.threadManager = model.NewThreadManager(this.threadNum)
+
 	log.Println("Crawler start running....")
 
-	// netWork Handle goroutine
-	for i := 0; i < this.threadNum; i++ {
-		go func(num int) {
-			tag := fmt.Sprintf("[goroutine %d]", num)
-			for {
-				task := this.scheduler.GetTask()
-				result := this.downloader.Download(tag, task)
-				if result.Err != nil {
-					continue
-				}
-				this.scheduler.AddResult(result)
-			}
-		}(i + 1)
-	}
-
-	//parse the result
 	for {
-		result := this.scheduler.GetResult()
-		log.Println("Get Result, Identifier: " + result.Identifier)
-		for i := 0; i < len(this.parsers); i++ {
-			if this.parsers[i].Identifier == result.Identifier {
-				this.parsers[i].Parse(result, this.processor)
-				break
+		task := this.scheduler.GetTask()
+		chanLen := this.threadManager.GetOccupation()
+		tag := fmt.Sprintf("[goroutine %d]", chanLen)
+		go func(tag string, task model.Task) { //async download task
+			result := this.downloader.Download(tag, task)
+			if result.Err != nil {
+				this.threadManager.FreeOccupation()
+				return
 			}
-		}
+			log.Println("Get Result, Identifier: " + result.Identifier)
+			for i := 0; i < len(this.parsers); i++ {
+				if this.parsers[i].Identifier == result.Identifier {
+					this.parsers[i].Parse(result, this.processor)
+					break
+				}
+			}
+			this.threadManager.FreeOccupation()
+		}(tag, task)
+
 	}
-	// <-this.end
+}
+
+func (this *Crawler) ShutDown() {
+	if this.threadManager == nil {
+		panic(errors.New(ErrShutDownCrawler))
+	}
+	this.threadManager.GetOccupation()
+
+	if this.scheduler.GetTaskSize() == 0 {
+		// if there is no task in taskchan, shutdown the crawler
+		log.Println("Crawler has finished....")
+		os.Exit(0)
+	} else {
+		time.Sleep(100 * time.Millisecond)
+	}
+	this.threadManager.FreeOccupation()
+
 }
 
 //for debug

@@ -7,21 +7,15 @@ import (
 	crawler "github.com/nladuo/go-webcrawler"
 	"github.com/nladuo/go-webcrawler/model"
 	"log"
-	"os"
 	"strconv"
 )
 
 const (
-	PARSE_COURSE_URL    string = "parse_course_url"
-	PARSE_COURSE_DETAIL string = "parse_course_detail"
-	threadNum           int    = 3
+	PARSE_COURSE_URL string = "解析课程名称"
+	threadNum        int    = 3
 )
 
 var mCrawler *crawler.Crawler
-
-func ParseCourseDetail(res model.Result, processor model.Processor) {
-
-}
 
 func ParseCourseUrl(res model.Result, processor model.Processor) {
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(res.Response.Body))
@@ -36,8 +30,11 @@ func ParseCourseUrl(res model.Result, processor model.Processor) {
 	pageNum, _ := strconv.Atoi(string(res.UserData))
 	log.Println("page num :", pageNum)
 	if pageNum == 50 {
-		os.Exit(0)
+		mCrawler.ShutDown()
+	} else {
+
 	}
+
 	if pageNum == 1 {
 		for i := 2; i < 52; i++ {
 			pageNumStr := strconv.Itoa(i)
