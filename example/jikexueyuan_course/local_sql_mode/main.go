@@ -51,7 +51,7 @@ func main() {
 		panic(err)
 	}
 	defer db.Close()
-	mCrawler := crawler.NewLocalSqlCrawler(&db, threadNum)
+	mCrawler := crawler.NewLocalSqlCrawler(db, threadNum)
 	baseTask := model.Task{
 		Identifier: identifier,
 		Url:        "http://www.jikexueyuan.com/course/?pageNum=1",
