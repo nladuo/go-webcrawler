@@ -174,19 +174,22 @@ func (this *Crawler) Run() {
 	}
 }
 
-func (this *Crawler) ShutDown() {
+//shutdown when task listbecome empty
+func (this *Crawler) WaitForShutDown() {
 	if this.threadManager == nil {
 		panic(errors.New(ErrShutDownCrawler))
 	}
-	this.threadManager.GetOccupation()
-	time.Sleep(100 * time.Millisecond)
-	if this.scheduler.GetTaskSize() == 0 {
-		// if there is no task in taskchan, shutdown the crawler
-		log.Println("Crawler has finished....")
-		os.Exit(0)
+	for {
+		this.threadManager.GetOccupation()
+		time.Sleep(100 * time.Millisecond)
+		if this.scheduler.GetTaskSize() == 0 {
+			// if there is no task in taskchan, shutdown the crawler
+			log.Println("Crawler has finished....")
+			time.Sleep(100 * time.Millisecond)
+			os.Exit(0)
+		}
+		this.threadManager.FreeOccupation()
 	}
-	this.threadManager.FreeOccupation()
-
 }
 
 //for debug

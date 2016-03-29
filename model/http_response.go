@@ -1,6 +1,7 @@
 package model
 
 import (
+	"bytes"
 	"io/ioutil"
 	"net/http"
 )
@@ -11,6 +12,10 @@ type HttpResponse struct {
 	Header        http.Header
 	StatusCode    int
 	ContentLength int64
+}
+
+func (this *HttpResponse) GetBodyReader() *bytes.Reader {
+	return bytes.NewReader(this.Body)
 }
 
 func GetResponse(response *http.Response) (HttpResponse, error) {
