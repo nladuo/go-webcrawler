@@ -25,5 +25,17 @@ In this mode, the framework would store the intermediate data into a sql databas
 #### Distributed Sql Mode
 Same as the Local Sql Mode, The Distributed Sql Mode would store the intermediate data into a sql database too. The difference between them is that the distributed one need zookeeper for coordination.You can check out the zookeeper configuration <a href="http://zookeeper.apache.org/doc/r3.4.6/zookeeperStarted.html">here</a>.
 
+## Examples
+The examples can help you quickly access the go-webcrawler.
+### 1.github stars crawler
+[Local Memory Mode Example](./example/github_stars/github_stars.go)  
+Local Sql Mode Example  
+Distributed Sql Mode Example
+
+### 2.douban movie top250 crawler
+[Local Memory Mode Example](./example/douban_movie_top250/douban_movie_top250.go)  
+Local Sql Mode Example  
+Distributed Sql Mode Example
+
 ## License
 MIT
