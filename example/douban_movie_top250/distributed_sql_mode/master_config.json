@@ -1,0 +1,10 @@
+{
+    "AppName": "douban_movie_top250",
+    "IsMaster": true,
+    "ThreadNum": 3,
+    "LockerTimeout": 10,
+    "ZkTimeOut": 600,
+    "ZkHosts": [
+        "127.0.0.1:2181"
+    ]
+}

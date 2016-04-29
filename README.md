@@ -30,12 +30,12 @@ The examples give you a quick access about go-webcrawler.
 ### 1.github stars crawler
 [Local Memory Mode Example](./example/github_stars/github_stars.go)  
 [Local Sql Mode Example](./example/github_stars/local_sql_mode/github_stars.go)    
-Distributed Sql Mode Example
+[Distributed Sql Mode Example](./example/github_stars/distributed_sql_mode/github_stars.go)
 
 ### 2.douban movie top250 crawler
 [Local Memory Mode Example](./example/douban_movie_top250/douban_movie_top250.go)  
 [Local Sql Mode Example](./example/douban_movie_top250/local_sql_mode/douban_movie_top250.go)  
-Distributed Sql Mode Example
+[Distributed Sql Mode Example](./example/douban_movie_top250/distributed_sql_mode/douban_movie_top250.go)
 
 ## License
 MIT

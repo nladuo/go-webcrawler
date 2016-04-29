@@ -1,0 +1,10 @@
+{
+    "AppName": "github_stars",
+    "IsMaster": true,
+    "ThreadNum": 3,
+    "LockerTimeout": 10,
+    "ZkTimeOut": 600,
+    "ZkHosts": [
+        "127.0.0.1:2181"
+    ]
+}
