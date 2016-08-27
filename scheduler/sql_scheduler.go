@@ -2,8 +2,8 @@ package scheduler
 
 import (
 	"github.com/jinzhu/gorm"
-	"github.com/nladuo/DLocker"
 	"github.com/nladuo/go-webcrawler/model"
+	"github.com/nladuo/go-zk-lock"
 	"log"
 	"sync"
 	"time"

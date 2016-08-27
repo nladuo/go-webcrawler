@@ -10,7 +10,7 @@ script:
 
 install:
     - go get github.com/PuerkitoBio/goquery
-    - go get github.com/nladuo/DLocker
+    - go get github.com/nladuo/go-zk-lock
     - go get github.com/samuel/go-zookeeper/zk
     - go get github.com/jinzhu/gorm 
     - go get github.com/lib/pq
